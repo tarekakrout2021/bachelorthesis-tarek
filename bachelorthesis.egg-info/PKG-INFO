@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: bachelorthesis
+Version: 0.1.0
+Summary: bachelorthesis
+Author: Tarek Akrout
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.10.12
+Description-Content-Type: text/markdown
