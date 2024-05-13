@@ -1,6 +1,0 @@
-README.md
-setup.py
-bachelorthesis.egg-info/PKG-INFO
-bachelorthesis.egg-info/SOURCES.txt
-bachelorthesis.egg-info/dependency_links.txt
-bachelorthesis.egg-info/top_level.txt

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="SshConfigs">
-    <configs>
-      <sshConfig authType="OPEN_SSH" host="hydra.ml.tu-berlin.de" id="92830f87-fa46-4a00-8071-aaf89b36ab29" port="22" nameFormat="DESCRIPTIVE" username="tarek_akrout" useOpenSSHConfig="true" />
-    </configs>
-  </component>
-</project>
