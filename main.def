@@ -1,0 +1,19 @@
+Bootstrap: docker
+From: python:3.12
+
+%files
+    requirements.txt /requirements.txt
+
+%post
+    # Install packages required by:
+    #   matplotlib for LaTeX rendering (`texlive-latex-extra`, `texlive-fonts-recommended`, `dvipng`, `cm-super`)
+    #   SquashFS (`squashfs-tools`)
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y texlive-latex-extra \
+                                                      texlive-fonts-recommended \
+                                                      dvipng \
+                                                      cm-super \
+                                                      squashfs-tools
+
+    pip install --root-user-action=ignore --upgrade pip && \
+    pip install --root-user-action=ignore -r /requirements.txt
