@@ -34,7 +34,7 @@ def activation_quant_inference(x, num_bits=8):
 
 
 class BitLinear158(nn.Linear):
-    def __init__(self,input_dim, output_dim, weight_bits=1, input_bits=8):
+    def __init__(self, input_dim, output_dim, weight_bits=1, input_bits=8):
         super(BitLinear158, self).__init__(input_dim, output_dim)
 
         self.input_dim = input_dim

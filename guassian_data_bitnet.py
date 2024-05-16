@@ -99,27 +99,48 @@ def loss_function(recon_x, x, mu, logvar):
     MSE = F.mse_loss(recon_x, x, reduction="sum")
     KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     # TODO: report MSE and KL seperately for debugging
-    return MSE + KL
+    return MSE + KL, MSE, KL
 
 
 model = VAE().to(device)
-optimizer = Adam(model.parameters(), lr=1e-3)
+optimizer = Adam(model.parameters(), lr=3e-4)
 data_loader = torch.utils.data.DataLoader(data, batch_size=64, shuffle=True)
 
 # train the model
-for epoch in range(50):
+mse_array = np.array([])
+kl_array = np.array([])
+training_array = np.array([])
+n_epochs = 60
+for epoch in range(n_epochs):
     model.train()
     train_loss = 0
+    mse_loss = 0
+    kl_loss = 0
     for batch_idx, data in enumerate(data_loader):
         optimizer.zero_grad()
         data.to(device)
         recon_batch, mu, logvar = model(data)
-        loss = loss_function(recon_batch, data, mu, logvar)
+        loss, mse, kl = loss_function(recon_batch, data, mu, logvar)
         train_loss += loss.item()
+        mse_loss += mse.item()
+        kl_loss += kl.item()
         loss.backward()
         optimizer.step()
 
-    print(f"Train Epoch: {epoch}  Loss: {loss.item() / len(data):.6f}")
+    mse_array = np.append(mse_array, mse_loss)
+    kl_array = np.append(kl_array, kl_loss)
+    training_array = np.append(training_array, train_loss)
+    print(f"Train Epoch: {epoch}  Loss: {train_loss :.6f}")
+
+# show the mse and kl loss
+epochs = np.arange(1, n_epochs + 1)
+plt.figure(figsize=(8, 6))
+plt.plot(epochs, mse_array, label="Reconstruction Loss", color="blue")
+plt.plot(epochs, kl_array, label="KL Divergence", color="red")
+plt.plot(epochs, training_array, label="Total Loss", color="black")
+plt.legend()
+plt.savefig("./plots/losses.png")
+plt.close()
 
 
 latent_variables = []
