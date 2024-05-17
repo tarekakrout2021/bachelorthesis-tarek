@@ -1,0 +1,7 @@
+line-length = 88
+
+[lint]
+select = [
+    "F401",  # delete unused imports
+    "I001",  # isort (reorder imports)
+]

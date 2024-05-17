@@ -1,6 +1,7 @@
 # following this implementation : https://github.com/Mrw33554432/Bitlinear4HF/blob/master/bitlinear.py
-from torch import nn, torch
 import torch.nn.functional as F
+from torch import nn, torch
+
 # import optimized_bitlinear as obl # TODO: After compiling the cuda kernel import the function here
 
 
@@ -51,7 +52,7 @@ class BitLinear158(nn.Linear):
         quant_weight = self.weight + (w_quant - self.weight).detach()
 
         out = F.linear(quant_input, quant_weight)
-        if not self.bias is None:
+        if self.bias is not None:
             out += self.bias.view(1, -1).expand_as(out)
 
         return out
@@ -77,7 +78,7 @@ class BitLinear158Inference(nn.Linear):
 
         # out = obl.mat_mul(quant_input, self.weight) / self.beta / gamma  # TODO:  should be like this after using the kernel
         out = F.linear(quant_input / self.beta / gamma, self.weight)
-        if not self.bias is None:
+        if self.bias is not None:
             out += self.bias.view(1, -1).expand_as(out)
 
         return out
