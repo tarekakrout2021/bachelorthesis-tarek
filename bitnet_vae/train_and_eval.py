@@ -7,7 +7,7 @@ from sklearn.datasets import make_blobs
 from torch.optim import Adam
 from vae import VAE
 
-DATA = "normal"  # "normal" or "anisotropic"
+DATA = "anisotropic"  # "normal" or "anisotropic"
 
 PLOT_DIR = Path(f"../plots/{DATA}")
 CHECKPOINT_DIR = Path("../checkpoints/")
