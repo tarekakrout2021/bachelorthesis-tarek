@@ -7,7 +7,7 @@ from torch.optim import Adam
 
 from bitnet_vae.vae import VAE
 
-DATA = "normal"  # "normal" or "anisotropic"
+DATA = "anisotropic"  # "normal" or "anisotropic"
 
 PLOT_DIR = Path(f"../plots/{DATA}")
 CHECKPOINT_DIR = Path("../checkpoints/")
@@ -20,15 +20,19 @@ torch.manual_seed(0)
 
 
 def get_data():
-    def generate_gaussian_data(n_samples=1000, mean=[5, 5], cov=[[1, 0], [0, 1]]):
+    def generate_gaussian_data(n_samples=1000, mean=[0, 0], cov=[[1, 0], [0, 1]]):
         data = np.random.multivariate_normal(mean, cov, n_samples)
         return torch.tensor(data, dtype=torch.float32)
 
     def generate_anisotropic_single_gaussian(n_samples=1000):
         X = generate_gaussian_data()
         transformation_matrix = np.array(
-            [[0.6, -0.6], [-0.4, 0.8]]
+            [[5, 0], [0, 2]]
         )  # This creates an anisotropic effect
+        rot_mat = np.array(
+            [[np.sqrt(2) / 2, -np.sqrt(2) / 2], [np.sqrt(2) / 2, np.sqrt(2) / 2]]
+        )
+        transformation_matrix = transformation_matrix @ rot_mat
         data = np.dot(X, transformation_matrix)
         return torch.tensor(data, dtype=torch.float32)
 
@@ -52,6 +56,8 @@ def plot_data(
     plt.xlabel(x)
     plt.ylabel(y)
     plt.grid(True)
+    plt.xlim(-15, 15)
+    plt.ylim(-15, 15)
     plt.savefig(path)
     plt.close()
 
