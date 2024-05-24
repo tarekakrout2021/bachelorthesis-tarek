@@ -5,11 +5,11 @@ import numpy as np
 import torch
 from torch.optim import Adam
 
-from bitnet_vae.vae import VAE
+from baseline_vae.vae import VAE
 
-DATA = "normal"  # "normal" or "anisotropic"
+DATA = "anisotropic"  # "normal" or "anisotropic"
 
-PLOT_DIR = Path(f"../plots/{DATA}")
+PLOT_DIR = Path(f"../plots/baseline/{DATA}")
 CHECKPOINT_DIR = Path("../checkpoints/")
 if not PLOT_DIR.exists():
     PLOT_DIR.mkdir(parents=True)
@@ -20,15 +20,19 @@ torch.manual_seed(0)
 
 
 def get_data():
-    def generate_gaussian_data(n_samples=1000, mean=[5, 5], cov=[[1, 0], [0, 1]]):
+    def generate_gaussian_data(n_samples=1000, mean=[0, 0], cov=[[1, 0], [0, 1]]):
         data = np.random.multivariate_normal(mean, cov, n_samples)
         return torch.tensor(data, dtype=torch.float32)
 
     def generate_anisotropic_single_gaussian(n_samples=1000):
         X = generate_gaussian_data()
         transformation_matrix = np.array(
-            [[0.6, -0.6], [-0.4, 0.8]]
+            [[5, 0], [0, 2]]
         )  # This creates an anisotropic effect
+        rot_mat = np.array(
+            [[np.sqrt(2) / 2, -np.sqrt(2) / 2], [np.sqrt(2) / 2, np.sqrt(2) / 2]]
+        )
+        transformation_matrix = transformation_matrix @ rot_mat
         data = np.dot(X, transformation_matrix)
         return torch.tensor(data, dtype=torch.float32)
 
@@ -52,6 +56,8 @@ def plot_data(
     plt.xlabel(x)
     plt.ylabel(y)
     plt.grid(True)
+    plt.xlim(-15, 15)
+    plt.ylim(-15, 15)
     plt.savefig(path)
     plt.close()
 
@@ -60,7 +66,7 @@ def train(model, optimizer, data_loader):
     mse_array = np.array([])
     kl_array = np.array([])
     training_array = np.array([])
-    n_epochs = 150
+    n_epochs = 100
     for epoch in range(n_epochs):
         model.train()
         train_loss = 0
@@ -95,7 +101,6 @@ def train(model, optimizer, data_loader):
 
 def evaluate(model, data_loader):
     # Training mode: plot q(z|x) in training mode
-    assert model.mode == "training"
     latent_variables = []
     for data in data_loader:
         mu, logvar = model.encode_latent(data)
@@ -112,8 +117,6 @@ def evaluate(model, data_loader):
     )
     print(f"plotted at {plot_dir.absolute().resolve()}")
 
-    model.change_to_inference()
-
     # Sanity checks
     print(model)  # Check whether all BitLinear layers are set to inference mode
     # Check whether weights are ternary
@@ -122,7 +125,7 @@ def evaluate(model, data_loader):
     #         print(name, param.data)
 
     # Inference mode: plot q(z|x) in inference mode
-    assert model.mode == "inference"
+
     latent_variables = []
     for data in data_loader:
         mu, logvar = model.encode_latent(data)
@@ -138,7 +141,6 @@ def evaluate(model, data_loader):
     )
 
     # Inference mode: sample from p(z) and decode
-    assert model.mode == "inference"
     n_samples = 1000
     generated_data = model.sample(n_samples=n_samples, device="cpu")
     generated_data = generated_data.cpu().numpy()
@@ -151,7 +153,6 @@ def evaluate(model, data_loader):
     )
 
     # Inference mode: reconstruct data and plot
-    assert model.mode == "inference"
     reconstructed_data = []
     for data in data_loader:
         mu, logvar = model.encode_latent(data)

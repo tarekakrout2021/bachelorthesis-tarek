@@ -5,3 +5,4 @@ bachelorthesis.egg-info
 .idea
 venv
 checkpoints
+.ipynb_checkpoints

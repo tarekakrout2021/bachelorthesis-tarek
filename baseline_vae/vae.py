@@ -1,34 +1,33 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from bitlinear158 import BitLinear158, BitLinear158Inference
 
 DEVICE = "cpu"
 
 
 class VAE(nn.Module):
-    def __init__(self, input_dim=2, latent_dim=3):
+    def __init__(self, input_dim=2, latent_dim=2):
         super().__init__()
         self.input_dim = input_dim
         self.latent_dim = latent_dim
 
         # Encoder
-        self.fc1 = BitLinear158(input_dim, 200)
-        self.fc2 = BitLinear158(200, 200)
-        self.fc3 = BitLinear158(200, 200)
-        self.fc31 = BitLinear158(200, latent_dim)  # For mu
-        self.fc32 = BitLinear158(200, latent_dim)  # For log variance
+        self.fc1 = nn.Linear(input_dim, 200)
+        self.fc2 = nn.Linear(200, 200)
+        self.fc3 = nn.Linear(200, 200)
+        self.fc31 = nn.Linear(200, latent_dim)  # For mu
+        self.fc32 = nn.Linear(200, latent_dim)  # For log variance
 
         # Decoder
         self.decoder = nn.Sequential(
-            BitLinear158(latent_dim, 200),
+            nn.Linear(latent_dim, 200),
             nn.LeakyReLU(0.2),
             # RMSNorm(100),
-            BitLinear158(200, 200),
+            nn.Linear(200, 200),
             nn.LeakyReLU(0.2),
-            BitLinear158(200, 200),
+            nn.Linear(200, 200),
             nn.LeakyReLU(0.2),
-            BitLinear158(200, input_dim),
+            nn.Linear(200, input_dim),
         )
 
         self.to(DEVICE)
@@ -67,30 +66,6 @@ class VAE(nn.Module):
         KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         # TODO: report MSE and KL seperately for debugging
         return MSE + KL, MSE, KL
-
-    def change_to_inference(self):
-        """
-        Replaces layers in network with inference layers.
-        """
-
-        def replace_bitlinear_layers(module):
-            for name, layer in module.named_children():
-                if isinstance(layer, BitLinear158):
-                    layer.beta = 1 / layer.weight.abs().mean().clamp(min=1e-5)
-                    layer.weight = nn.Parameter(
-                        (layer.weight * layer.beta).round().clamp(-1, 1)
-                    )
-                    layer.weight.detach()
-                    layer.weight.requires_grad = False
-                    new_layer = BitLinear158Inference(layer.input_dim, layer.output_dim)
-                    new_layer.weight.data = layer.weight.data.clone()
-                    new_layer.beta = layer.beta
-                    setattr(module, name, new_layer)
-                else:
-                    replace_bitlinear_layers(layer)
-
-        replace_bitlinear_layers(self)
-        self.mode = "inference"
 
     def sample(self, n_samples=100, device="cpu"):
         """
