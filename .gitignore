@@ -7,3 +7,4 @@ venv
 checkpoints
 .ipynb_checkpoints
 bitnet_vae_mnist
+src/visualize/plots
