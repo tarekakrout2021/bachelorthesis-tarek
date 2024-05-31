@@ -1,5 +1,5 @@
 model:
-  name: "bitnet_vae"
+  name: "baseline_vae"
 
 training:
   batch_size: 64
@@ -9,7 +9,6 @@ training:
 data:
   train_data_path: "data/train"
   training_data: "anisotropic" # "normal" or "anisotropic" or "spiral"
-
 
 output:
   plot_dir: "./visualize/plots"

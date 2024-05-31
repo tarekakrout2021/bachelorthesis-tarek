@@ -34,7 +34,8 @@ def evaluate(model, data_loader):
     )
     print(f"plotted at {plot_dir.absolute().resolve()}")
 
-    model.change_to_inference()
+    if model_name == "bitnet_vae":
+        model.change_to_inference()
 
     # Sanity checks
     print(model)  # Check whether all BitLinear layers are set to inference mode
@@ -44,7 +45,8 @@ def evaluate(model, data_loader):
     #         print(name, param.data)
 
     # Inference mode: plot q(z|x) in inference mode
-    assert model.mode == "inference"
+    if model_name == "bitnet_vae":
+        assert model.mode == "inference"
     latent_variables = []
     for data in data_loader:
         mu, logvar = model.encode_latent(data)
@@ -60,7 +62,8 @@ def evaluate(model, data_loader):
     )
 
     # Inference mode: sample from p(z) and decode
-    assert model.mode == "inference"
+    if model_name == "bitnet_vae":
+        assert model.mode == "inference"
     n_samples = 1000
     generated_data = model.sample(n_samples=n_samples, device="cpu")
     generated_data = generated_data.cpu().numpy()
@@ -73,7 +76,8 @@ def evaluate(model, data_loader):
     )
 
     # Inference mode: reconstruct data and plot
-    assert model.mode == "inference"
+    if model_name == "bitnet_vae":
+        assert model.mode == "inference"
     reconstructed_data = []
     for data in data_loader:
         mu, logvar = model.encode_latent(data)
