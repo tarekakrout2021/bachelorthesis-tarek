@@ -7,7 +7,7 @@ DEVICE = "cpu"
 
 
 class VAE(nn.Module):
-    def __init__(self, input_dim=2, latent_dim=3):
+    def __init__(self, input_dim=2, latent_dim=2):
         super().__init__()
         self.input_dim = input_dim
         self.latent_dim = latent_dim

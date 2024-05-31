@@ -7,7 +7,7 @@ from torch.optim import Adam
 
 from bitnet_vae.vae import VAE
 
-DATA = "anisotropic"  # "normal" or "anisotropic"
+DATA = "normal"  # "normal" or "anisotropic" or "spiral"
 
 PLOT_DIR = Path(f"../plots/{DATA}")
 CHECKPOINT_DIR = Path("../checkpoints/")
@@ -36,10 +36,21 @@ def get_data():
         data = np.dot(X, transformation_matrix)
         return torch.tensor(data, dtype=torch.float32)
 
+    # Spiral Data
+    def generate_spiral_data(n_samples=1000, noise=0.5):
+        theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
+        r = 2 * theta + noise * np.random.randn(n_samples)
+        x = r * np.cos(theta)
+        y = r * np.sin(theta)
+        res = np.vstack((x, y)).T
+        return torch.tensor(res, dtype=torch.float32)
+
     if DATA == "normal":
         return generate_gaussian_data()
     elif DATA == "anisotropic":
         return generate_anisotropic_single_gaussian()
+    elif DATA == "spiral":
+        return generate_spiral_data()
     raise ValueError(f"Invalid data type {DATA}")
 
 
@@ -56,8 +67,8 @@ def plot_data(
     plt.xlabel(x)
     plt.ylabel(y)
     plt.grid(True)
-    plt.xlim(-15, 15)
-    plt.ylim(-15, 15)
+    plt.xlim(-3, 3)
+    plt.ylim(-3, 3)
     plt.savefig(path)
     plt.close()
 
@@ -66,7 +77,7 @@ def train(model, optimizer, data_loader):
     mse_array = np.array([])
     kl_array = np.array([])
     training_array = np.array([])
-    n_epochs = 150
+    n_epochs = 200
     for epoch in range(n_epochs):
         model.train()
         train_loss = 0
