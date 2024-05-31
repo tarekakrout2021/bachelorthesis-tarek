@@ -12,11 +12,14 @@ class VAE(nn.Module):
         self.latent_dim = latent_dim
 
         # Encoder
-        self.fc1 = nn.Linear(input_dim, 200)
-        self.fc2 = nn.Linear(200, 200)
-        self.fc3 = nn.Linear(200, 200)
-        self.fc31 = nn.Linear(200, latent_dim)  # For mu
-        self.fc32 = nn.Linear(200, latent_dim)  # For log variance
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, 200),
+            nn.Linear(200, 200),
+            nn.Linear(200, 200),
+        )
+
+        self.fc1 = nn.Linear(200, latent_dim)  # For mu
+        self.fc2 = nn.Linear(200, latent_dim)  # For log variance
 
         # Decoder
         self.decoder = nn.Sequential(
@@ -36,10 +39,8 @@ class VAE(nn.Module):
         self.mode = "training"
 
     def encode(self, x):
-        h1 = F.relu(self.fc1(x))
-        h2 = F.relu(self.fc2(h1))
-        h3 = F.relu(self.fc3(h2))
-        return self.fc31(h3), self.fc32(h3)
+        h = self.encoder(x)
+        return self.fc1(h), self.fc2(h)
 
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar).to(self.device)
