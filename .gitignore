@@ -6,3 +6,5 @@ bachelorthesis.egg-info
 venv
 checkpoints
 .ipynb_checkpoints
+bitnet_vae_mnist
+plots

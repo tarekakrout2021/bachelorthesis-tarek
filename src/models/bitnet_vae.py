@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from bitlinear158 import BitLinear158, BitLinear158Inference
+
+from src.models.bitlinear158 import BitLinear158, BitLinear158Inference
 
 DEVICE = "cpu"
 
