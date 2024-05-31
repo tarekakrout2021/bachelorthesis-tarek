@@ -1,5 +1,5 @@
 model:
-  name: "baseline_vae"
+  name: "bitnet_vae" # bitnet_vae or baseline_vae
 
 training:
   batch_size: 64

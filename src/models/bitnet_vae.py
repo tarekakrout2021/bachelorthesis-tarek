@@ -8,31 +8,32 @@ DEVICE = "cpu"
 
 
 class VAE(nn.Module):
-    def __init__(self, input_dim=2, latent_dim=2):
+    def __init__(self, input_dim=2, latent_dim=2, num_layers=3, hidden_dim=200):
         super().__init__()
         self.input_dim = input_dim
         self.latent_dim = latent_dim
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
 
         # Encoder
-        self.encoder = nn.Sequential(
-            BitLinear158(input_dim, 200),
-            BitLinear158(200, 200),
-            BitLinear158(200, 200),
-        )
+        encoder_layers = []
+        encoder_layers.append(BitLinear158(input_dim, hidden_dim))
+        for _ in range(num_layers - 1):
+            encoder_layers.append(BitLinear158(hidden_dim, hidden_dim))
+        self.encoder = nn.Sequential(*encoder_layers)
 
         self.fc1 = BitLinear158(200, latent_dim)  # For mu
         self.fc2 = BitLinear158(200, latent_dim)  # For log variance
 
         # Decoder
-        self.decoder = nn.Sequential(
-            BitLinear158(latent_dim, 200),
-            nn.LeakyReLU(0.2),
-            BitLinear158(200, 200),
-            nn.LeakyReLU(0.2),
-            BitLinear158(200, 200),
-            nn.LeakyReLU(0.2),
-            BitLinear158(200, input_dim),
-        )
+        decoder_layers = []
+        decoder_layers.append(BitLinear158(latent_dim, hidden_dim))
+        decoder_layers.append(nn.LeakyReLU(0.2))
+        for _ in range(num_layers - 1):
+            decoder_layers.append(BitLinear158(hidden_dim, hidden_dim))
+        decoder_layers.append(nn.LeakyReLU(0.2))
+        decoder_layers.append(BitLinear158(hidden_dim, input_dim))
+        self.decoder = nn.Sequential(*decoder_layers)
 
         self.to(DEVICE)
         self.device = DEVICE
