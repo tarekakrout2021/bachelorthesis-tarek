@@ -15,3 +15,9 @@ From the repo root:
 ```bash
 apptainer build --fakeroot main.sif main.def
 ```
+
+### Run the code
+From the src folder (example):
+```bash
+python3 main.py --model "bitnet_vae" --training_data "anisotropic" --epochs 10 --batch_size 32 --learning_rate 0.001 
+```
