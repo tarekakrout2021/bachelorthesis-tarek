@@ -1,13 +1,32 @@
 import matplotlib.pyplot as plt
 import yaml
 
-from src.models.baseline_vae import VAE as baseline_vae_synthetic
-from src.models.bitnet_vae import VAE as bitnet_vae_synthetic
+from ..models.baseline_vae import VAE as baseline_vae_synthetic
+from ..models.bitnet_vae import VAE as bitnet_vae_synthetic
 
 
 def load_config(config_path):
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
+    return config
+
+
+def save_config(file_path, config):
+    with open(file_path, "w") as file:
+        yaml.safe_dump(config, file)
+
+
+def update_config(config, args):
+    if args.batch_size:
+        config["training"]["batch_size"] = args.batch_size
+    if args.epochs:
+        config["training"]["epochs"] = args.epochs
+    if args.learning_rate:
+        config["training"]["learning_rate"] = args.learning_rate
+    if args.training_data:
+        config["data"]["training_data"] = args.training_data
+    if args.model:
+        config["model"]["name"] = args.model
     return config
 
 

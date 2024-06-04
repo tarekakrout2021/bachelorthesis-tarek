@@ -3,11 +3,11 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from src.utils.helpers import load_config, plot_bar, plot_data
+from src.utils import helpers
 
 
 def evaluate(model, data_loader):
-    config = load_config("./model_config.yaml")
+    config = helpers.load_config("./model_config.yaml")
     model_name = config["model"]["name"]
     PLOT_DIR = Path(
         f"{config['output']['plot_dir']}/{model_name}/{config['data']['training_data']}"
@@ -25,7 +25,7 @@ def evaluate(model, data_loader):
         latent_variables.append(z)
     latent_variables = torch.cat(latent_variables, 0)
     plot_dir = PLOT_DIR / "train_q(z|x).png"
-    plot_data(
+    helpers.plot_data(
         latent_variables,
         title="Train: q(z|x)",
         x="Latent Dimension 1",
@@ -53,7 +53,7 @@ def evaluate(model, data_loader):
         z = model.reparameterize(mu, logvar)
         latent_variables.append(z)
     latent_variables = torch.cat(latent_variables, 0)
-    plot_data(
+    helpers.plot_data(
         latent_variables,
         title="Inference: q(z|x)",
         x="Latent Dimension 1",
@@ -67,7 +67,7 @@ def evaluate(model, data_loader):
     n_samples = 1000
     generated_data = model.sample(n_samples=n_samples, device="cpu")
     generated_data = generated_data.cpu().numpy()
-    plot_data(
+    helpers.plot_data(
         generated_data,
         title="Inference: unconditional samples",
         x="Dimension 1",
@@ -85,7 +85,7 @@ def evaluate(model, data_loader):
         reconstructions = model.decode(z)
         reconstructed_data.append(reconstructions.detach().cpu().numpy())
     reconstructed_data = np.concatenate(reconstructed_data, 0)
-    plot_data(
+    helpers.plot_data(
         reconstructed_data,
         title="Inference: Reconstruction",
         x="Dimension 1",
@@ -96,14 +96,14 @@ def evaluate(model, data_loader):
     # Inference mode: stat for ternary weights
     if model_name == "bitnet_vae":
         assert model.mode == "inference"
-    model.weight_stats()
+        model.weight_stats()
 
-    # print(f"Stats: {model.n_0} zeros in ternary weights")
-    # print(f"Stats: {model.n_1} ones in ternary weights")
-    # print(f"Stats: {model.n_minus_1} minus ones in ternary weights")
+        # print(f"Stats: {model.n_0} zeros in ternary weights")
+        # print(f"Stats: {model.n_1} ones in ternary weights")
+        # print(f"Stats: {model.n_minus_1} minus ones in ternary weights")
 
-    plot_bar(
-        [model.n_minus_1, model.n_0, model.n_1],
-        values=[-1, 0, 1],
-        path=PLOT_DIR / "ternary_weights.png",
-    )
+        helpers.plot_bar(
+            [model.n_minus_1, model.n_0, model.n_1],
+            values=[-1, 0, 1],
+            path=PLOT_DIR / "ternary_weights.png",
+        )
