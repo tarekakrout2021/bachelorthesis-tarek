@@ -40,3 +40,13 @@ def get_model(config):
         raise ValueError(f"Model {model_name} is not supported")
 
     return model
+
+
+def plot_bar(counts, values=[-1, 0, 1], path="weights.png"):
+    plt.bar(values, counts, edgecolor="black")
+    plt.title("Distribution of weights")
+    plt.xlabel("Values")
+    plt.ylabel("Frequency")
+    plt.xticks(values)
+    plt.savefig(path)
+    plt.close()

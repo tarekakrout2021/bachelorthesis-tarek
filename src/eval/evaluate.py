@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from src.utils.helpers import load_config, plot_data
+from src.utils.helpers import load_config, plot_bar, plot_data
 
 
 def evaluate(model, data_loader):
@@ -91,4 +91,19 @@ def evaluate(model, data_loader):
         x="Dimension 1",
         y="Dimension 2",
         path=PLOT_DIR / "inference_reconstruction.png",
+    )
+
+    # Inference mode: stat for ternary weights
+    if model_name == "bitnet_vae":
+        assert model.mode == "inference"
+    model.weight_stats()
+
+    # print(f"Stats: {model.n_0} zeros in ternary weights")
+    # print(f"Stats: {model.n_1} ones in ternary weights")
+    # print(f"Stats: {model.n_minus_1} minus ones in ternary weights")
+
+    plot_bar(
+        [model.n_minus_1, model.n_0, model.n_1],
+        values=[-1, 0, 1],
+        path=PLOT_DIR / "ternary_weights.png",
     )

@@ -15,6 +15,11 @@ class VAE(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
 
+        # for stats
+        self.n_0 = 0
+        self.n_1 = 0
+        self.n_minus_1 = 0
+
         # Encoder
         encoder_layers = []
         encoder_layers.append(BitLinear158(input_dim, hidden_dim))
@@ -67,7 +72,6 @@ class VAE(nn.Module):
     def loss_function(recon_x, x, mu, logvar):
         MSE = F.mse_loss(recon_x, x, reduction="sum")
         KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        # TODO: report MSE and KL seperately for debugging
         return MSE + KL, MSE, KL
 
     def change_to_inference(self):
@@ -93,6 +97,22 @@ class VAE(nn.Module):
 
         replace_bitlinear_layers(self)
         self.mode = "inference"
+
+    def weight_stats(self):
+        """
+        counts the number of -1, 0, 1 weights in the network
+        """
+
+        def count(module):
+            for name, layer in module.named_children():
+                if isinstance(layer, BitLinear158Inference):
+                    self.n_0 += (layer.weight == 0).sum().item()
+                    self.n_1 += (layer.weight == 1).sum().item()
+                    self.n_minus_1 += (layer.weight == -1).sum().item()
+                else:
+                    count(layer)
+
+        count(self)
 
     def sample(self, n_samples=100, device="cpu"):
         """
