@@ -2,13 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.models.bitlinear158 import BitLinear158, BitLinear158Inference
+from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
 
 DEVICE = "cpu"
 
 
 class VAE(nn.Module):
-    def __init__(self, input_dim=2, latent_dim=2, num_layers=3, hidden_dim=200):
+    def __init__(self, layer, input_dim=2, latent_dim=2, num_layers=3, hidden_dim=200):
         super().__init__()
         self.input_dim = input_dim
         self.latent_dim = latent_dim
@@ -22,22 +22,24 @@ class VAE(nn.Module):
 
         # Encoder
         encoder_layers = []
-        encoder_layers.append(BitLinear158(input_dim, hidden_dim))
+        encoder_layers.append(layer(input_dim, hidden_dim))
+        encoder_layers.append(nn.LeakyReLU(0.2))
         for _ in range(num_layers - 1):
-            encoder_layers.append(BitLinear158(hidden_dim, hidden_dim))
+            encoder_layers.append(layer(hidden_dim, hidden_dim))
+            encoder_layers.append(nn.LeakyReLU(0.2))
         self.encoder = nn.Sequential(*encoder_layers)
 
-        self.fc1 = BitLinear158(200, latent_dim)  # For mu
-        self.fc2 = BitLinear158(200, latent_dim)  # For log variance
+        self.mean_layer = layer(hidden_dim, latent_dim)  # For mu
+        self.log_var_layer = layer(hidden_dim, latent_dim)  # For log variance
 
         # Decoder
         decoder_layers = []
-        decoder_layers.append(BitLinear158(latent_dim, hidden_dim))
+        decoder_layers.append(layer(latent_dim, hidden_dim))
         decoder_layers.append(nn.LeakyReLU(0.2))
         for _ in range(num_layers - 1):
-            decoder_layers.append(BitLinear158(hidden_dim, hidden_dim))
-        decoder_layers.append(nn.LeakyReLU(0.2))
-        decoder_layers.append(BitLinear158(hidden_dim, input_dim))
+            decoder_layers.append(layer(hidden_dim, hidden_dim))
+            decoder_layers.append(nn.LeakyReLU(0.2))
+        decoder_layers.append(layer(hidden_dim, input_dim))
         self.decoder = nn.Sequential(*decoder_layers)
 
         self.to(DEVICE)
@@ -47,7 +49,7 @@ class VAE(nn.Module):
 
     def encode(self, x):
         h = self.encoder(x)
-        return self.fc1(h), self.fc2(h)
+        return self.mean_layer(h), self.log_var_layer(h)
 
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar).to(self.device)

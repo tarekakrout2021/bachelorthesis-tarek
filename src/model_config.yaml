@@ -1,11 +1,11 @@
 data:
   train_data_path: data/train
-  training_data: anisotropic
+  training_data: normal
 model:
-  name: baseline_vae
+  name: bitnet_synthetic
 output:
   plot_dir: ./visualize/plots
 training:
   batch_size: 64
   epochs: 10
-  learning_rate: 0.0003
+  learning_rate: 0.001
