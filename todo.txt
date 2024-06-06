@@ -1,9 +1,0 @@
-had to add src as a package to run it... should I use packages for all my code?
-
-cd /home/titi/Documents/TarekAkrout/TU_Berlin/ML_BachelorArbeit/bachelorthesis-tarek/src
-export PYTHONPATH=$PYTHONPATH:`pwd`
-then run the code
-this is only temporary... should I add it to the bashrc file?
-
-
-Is there a better way to do the config for hydra ?
