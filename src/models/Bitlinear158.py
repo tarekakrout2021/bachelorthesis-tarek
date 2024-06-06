@@ -48,6 +48,7 @@ class BitLinear158(nn.Linear):
         w_quant = weight_quant_training(self.weight)
         quant_input = activation_quant_training(input, self.input_bits)
 
+        # This is used for straight through estimator (STE)
         quant_input = input + (quant_input - input).detach()
         quant_weight = self.weight + (w_quant - self.weight).detach()
 
