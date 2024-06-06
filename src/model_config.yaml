@@ -1,6 +1,6 @@
 data:
   train_data_path: data/train
-  training_data: normal
+  training_data: anisotropic
 model:
   name: bitnet_synthetic
 output:

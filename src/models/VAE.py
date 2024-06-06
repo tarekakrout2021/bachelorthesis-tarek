@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
 
-DEVICE = "cpu"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class VAE(nn.Module):
@@ -21,9 +21,7 @@ class VAE(nn.Module):
         self.n_minus_1 = 0
 
         # Encoder
-        encoder_layers = []
-        encoder_layers.append(layer(input_dim, hidden_dim))
-        encoder_layers.append(nn.LeakyReLU(0.2))
+        encoder_layers = [layer(input_dim, hidden_dim), nn.LeakyReLU(0.2)]
         for _ in range(num_layers - 1):
             encoder_layers.append(layer(hidden_dim, hidden_dim))
             encoder_layers.append(nn.LeakyReLU(0.2))
@@ -33,9 +31,7 @@ class VAE(nn.Module):
         self.log_var_layer = layer(hidden_dim, latent_dim)  # For log variance
 
         # Decoder
-        decoder_layers = []
-        decoder_layers.append(layer(latent_dim, hidden_dim))
-        decoder_layers.append(nn.LeakyReLU(0.2))
+        decoder_layers = [layer(latent_dim, hidden_dim), nn.LeakyReLU(0.2)]
         for _ in range(num_layers - 1):
             decoder_layers.append(layer(hidden_dim, hidden_dim))
             decoder_layers.append(nn.LeakyReLU(0.2))
@@ -51,7 +47,7 @@ class VAE(nn.Module):
         h = self.encoder(x)
         return self.mean_layer(h), self.log_var_layer(h)
 
-    def reparameterize(self, mu, logvar):
+    def parameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar).to(self.device)
         eps = torch.randn_like(std).to(self.device)
         mu.to(self.device)
@@ -62,7 +58,7 @@ class VAE(nn.Module):
 
     def forward(self, x):
         mu, logvar = self.encode(x)
-        z = self.reparameterize(mu, logvar)
+        z = self.parameterize(mu, logvar)
         return self.decode(z), mu, logvar
 
     def encode_latent(self, x):
@@ -102,7 +98,7 @@ class VAE(nn.Module):
 
     def weight_stats(self):
         """
-        counts the number of -1, 0, 1 weights in the network
+        counts the number of -1, 0, 1 weights in the network.
         """
 
         def count(module):
