@@ -1,3 +1,4 @@
+import uuid
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -5,9 +6,9 @@ import numpy as np
 import torch
 import yaml
 
-from ..models.Baseline_synthetic import Baseline_synthetic
-from ..models.Bitnet_mnist import Bitnet_mnist
-from ..models.Bitnet_synthetic import Bitnet_synthetic
+from src.models.Baseline_synthetic import Baseline_synthetic
+from src.models.Bitnet_mnist import Bitnet_mnist
+from src.models.Bitnet_synthetic import Bitnet_synthetic
 
 
 def load_config(config_path):
@@ -81,15 +82,11 @@ def plot_bar(counts, values=[-1, 0, 1], path="weights.png"):
     plt.close()
 
 
-def plot_latent_space(model, scale=1.0, n=25, digit_size=28, figsize=15):
+def plot_latent_space(model, config, scale=1.0, n=25, digit_size=28, figsize=15):
     """
     Plot the latent space of the VAE model. Only for mnist data.
     """
-    config = load_config("./model_config.yaml")
-    model_name = config["model"]["name"]
-    PLOT_DIR = Path(
-        f"{config['output']['plot_dir']}/{model_name}/{config['data']['training_data']}"
-    )
+    plot_dir = get_plot_dir(config)
 
     # display a n*n 2D manifold of digits
     figure = np.zeros((digit_size * n, digit_size * n))
@@ -120,7 +117,7 @@ def plot_latent_space(model, scale=1.0, n=25, digit_size=28, figsize=15):
     plt.xlabel("mean, z [0]")
     plt.ylabel("var, z [1]")
     plt.imshow(figure, cmap="Greys_r")
-    plt.savefig(PLOT_DIR / f"mnist_reconstructed_{scale}.png")
+    plt.savefig(plot_dir / f"mnist_reconstructed_{scale}.png")
     plt.close()
 
 
@@ -128,14 +125,22 @@ def get_plot_dir(config):
     """
     returns the plot directory and creates it if it does not exist.
     """
-    model_name = config["model"]["name"]
-    plot_dir = Path(
-        f"{config['output']['plot_dir']}/{model_name}/{config['data']['training_data']}"
-    )
+    plot_dir = Path(f"./{config['run_id']}/plots")
     if not plot_dir.exists():
         plot_dir.mkdir(parents=True)
 
     return plot_dir
+
+
+def get_run_dir(config):
+    """
+    returns the run directory and creates it if it does not exist.
+    """
+    run_dir = Path(f"./{config['run_id']}")
+    if not run_dir.exists():
+        run_dir.mkdir(parents=True)
+
+    return run_dir
 
 
 def plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir):
@@ -147,3 +152,7 @@ def plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir):
     plt.legend()
     plt.savefig(plot_dir / "losses.png")
     plt.close()
+
+
+def generate_id():
+    return str(uuid.uuid4())

@@ -3,9 +3,8 @@ data:
   training_data: anisotropic
 model:
   name: bitnet_synthetic
-output:
-  plot_dir: ./visualize/plots
+run_id: b15f9fc8-9c75-4946-9812-5456b673f4d5
 training:
   batch_size: 64
-  epochs: 10
+  epochs: 50
   learning_rate: 0.001

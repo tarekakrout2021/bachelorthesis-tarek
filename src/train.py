@@ -12,9 +12,7 @@ def train(model, optimizer, data_loader, config):
     if model_name == "bitnet_mnist":
         n_data = data_loader.dataset.data.shape[0]
 
-        mse_array = np.array([])
-        kl_array = np.array([])
-        training_array = np.array([])
+        mse_array, kl_array, training_array = np.array([]), np.array([]), np.array([])
         for epoch in range(n_epochs):
             model.train()
             train_loss = mse_loss = kl_loss = 0

@@ -1,15 +1,24 @@
 import argparse
 
 import torch
+from data.make_dataset import get_data, plot_initial_data
+from eval.evaluate import evaluate
 from torch.optim import Adam
 from train import train
-
-from src.data.make_dataset import get_data, plot_initial_data
-from src.eval.evaluate import evaluate
-from src.utils.helpers import get_model, load_config, save_config, update_config
+from utils.helpers import (
+    generate_id,
+    get_model,
+    get_run_dir,
+    load_config,
+    save_config,
+    update_config,
+)
 
 
 def main():
+    run_id = generate_id()
+    print(f"Run ID: {run_id}")
+
     parser = argparse.ArgumentParser(description="Update YAML configuration.")
     parser.add_argument(
         "--model",
@@ -28,6 +37,7 @@ def main():
     # TODO : maybe overcomplicated solution with config file ?
     config = load_config("./model_config.yaml")
     updated_config = update_config(config, args)
+    updated_config["run_id"] = run_id
     save_config("./model_config.yaml", updated_config)
 
     config = updated_config
@@ -49,6 +59,9 @@ def main():
     else:
         train(model, optimizer, data_loader, config)
         evaluate(model, data_loader, config)
+
+    run_dir = get_run_dir(config)
+    torch.save(model.state_dict(), run_dir / "model.pth")
 
 
 if __name__ == "__main__":

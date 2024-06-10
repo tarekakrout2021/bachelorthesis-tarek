@@ -6,10 +6,7 @@ From: nvidia/cuda:11.0.3-base-ubuntu20.04
 
 %environment
     # Set up environment variables
-    export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:$PATH
-    cd src/
-    export PYTHONPATH=$PYTHONPATH:`pwd`
-
+    export PATH=/usr/local/cuda/bin:$PATH
 
 %post
     chmod 1777 /tmp  # necessary in case one wants to use apt on our cluster (this can also be done outside the .def file)

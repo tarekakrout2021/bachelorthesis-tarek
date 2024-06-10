@@ -8,12 +8,21 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class VAE(nn.Module):
-    def __init__(self, layer, input_dim=2, latent_dim=2, num_layers=3, hidden_dim=200):
+    def __init__(
+        self,
+        layer,
+        encoder_layers=None,
+        decoder_layers=None,
+        input_dim=2,
+        latent_dim=2,
+    ):
         super().__init__()
+        if decoder_layers is None:
+            decoder_layers = [200, 200, 200]
+        if encoder_layers is None:
+            encoder_layers = [200, 200, 200]
         self.input_dim = input_dim
         self.latent_dim = latent_dim
-        self.hidden_dim = hidden_dim
-        self.num_layers = num_layers
 
         # for stats
         self.n_0 = 0
@@ -21,22 +30,22 @@ class VAE(nn.Module):
         self.n_minus_1 = 0
 
         # Encoder
-        encoder_layers = [layer(input_dim, hidden_dim), nn.LeakyReLU(0.2)]
-        for _ in range(num_layers - 1):
-            encoder_layers.append(layer(hidden_dim, hidden_dim))
-            encoder_layers.append(nn.LeakyReLU(0.2))
-        self.encoder = nn.Sequential(*encoder_layers)
+        layers = [layer(input_dim, encoder_layers[0]), nn.LeakyReLU(0.2)]
+        for i in range(1, len(encoder_layers)):
+            layers.append(layer(encoder_layers[i - 1], encoder_layers[i]))
+            layers.append(nn.LeakyReLU(0.2))
+        self.encoder = nn.Sequential(*layers)
 
-        self.mean_layer = layer(hidden_dim, latent_dim)  # For mu
-        self.log_var_layer = layer(hidden_dim, latent_dim)  # For log variance
+        self.mean_layer = layer(encoder_layers[-1], latent_dim)  # For mu
+        self.log_var_layer = layer(encoder_layers[-1], latent_dim)  # For log variance
 
         # Decoder
-        decoder_layers = [layer(latent_dim, hidden_dim), nn.LeakyReLU(0.2)]
-        for _ in range(num_layers - 1):
-            decoder_layers.append(layer(hidden_dim, hidden_dim))
-            decoder_layers.append(nn.LeakyReLU(0.2))
-        decoder_layers.append(layer(hidden_dim, input_dim))
-        self.decoder = nn.Sequential(*decoder_layers)
+        layers = [layer(latent_dim, decoder_layers[0]), nn.LeakyReLU(0.2)]
+        for i in range(1, len(decoder_layers)):
+            layers.append(layer(decoder_layers[i - 1], decoder_layers[i]))
+            layers.append(nn.LeakyReLU(0.2))
+        layers.append(layer(decoder_layers[-1], input_dim))
+        self.decoder = nn.Sequential(*layers)
 
         self.to(DEVICE)
         self.device = DEVICE
@@ -74,7 +83,7 @@ class VAE(nn.Module):
 
     def change_to_inference(self):
         """
-        Replaces layers in network with inference layers.
+        Replaces layers in network with inference layers and quantizes the weights.
         """
 
         def replace_bitlinear_layers(module):

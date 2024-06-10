@@ -11,9 +11,10 @@ def evaluate(model, data_loader, config):
 
     if model_name == "bitnet_mnist":
         model.change_to_inference()
+        print(model)
 
         assert model.mode == "inference"
-        helpers.plot_latent_space(model)
+        helpers.plot_latent_space(model, config)
 
         # Inference mode: reconstruct data
         assert model.mode == "inference"
@@ -58,7 +59,7 @@ def evaluate(model, data_loader, config):
         print(f"Stats: {model.n_minus_1} minus ones in ternary weights")
 
         helpers.plot_bar(
-            [model.n_minus_1 / 1e6, model.n_0 / 1e6, model.n_1 / 1e6],
+            [model.n_minus_1, model.n_0, model.n_1],
             values=[-1, 0, 1],
             path=PLOT_DIR / "bar_chart_weights.png",
         )
@@ -82,7 +83,7 @@ def evaluate(model, data_loader, config):
         )
         print(f"plotted at {plot_dir.absolute().resolve()}")
 
-        if model_name == "bitnet_vae":
+        if "bitnet" in model_name:
             model.change_to_inference()
 
         # Sanity checks
@@ -93,7 +94,7 @@ def evaluate(model, data_loader, config):
         #         print(name, param.data)
 
         # Inference mode: plot q(z|x) in inference mode
-        if model_name == "bitnet_vae":
+        if "bitnet" in model_name:
             assert model.mode == "inference"
         latent_variables = []
         for data in data_loader:
@@ -110,7 +111,7 @@ def evaluate(model, data_loader, config):
         )
 
         # Inference mode: sample from p(z) and decode
-        if model_name == "bitnet_vae":
+        if "bitnet" in model_name:
             assert model.mode == "inference"
         n_samples = 1000
         generated_data = model.sample(n_samples=n_samples, device="cpu")
@@ -124,7 +125,7 @@ def evaluate(model, data_loader, config):
         )
 
         # Inference mode: reconstruct data and plot
-        if model_name == "bitnet_vae":
+        if "bitnet" in model_name:
             assert model.mode == "inference"
         reconstructed_data = []
         for data in data_loader:
@@ -142,7 +143,7 @@ def evaluate(model, data_loader, config):
         )
 
         # Inference mode: stat for ternary weights
-        if model_name == "bitnet_vae":
+        if "bitnet" in model_name:
             assert model.mode == "inference"
             model.weight_stats()
 
