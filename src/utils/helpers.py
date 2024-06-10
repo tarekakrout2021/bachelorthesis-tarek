@@ -33,6 +33,11 @@ def update_config(config, args):
         config["data"]["training_data"] = args.training_data
     if args.model:
         config["model"]["name"] = args.model
+    if args.encoder_layers:
+        config["model"]["encoder_layers"] = args.encoder_layers
+    if args.decoder_layers:
+        config["model"]["decoder_layers"] = args.decoder_layers
+
     return config
 
 
@@ -62,7 +67,9 @@ def get_model(config):
     elif model_name == "bitnet_synthetic":
         model = Bitnet_synthetic()
     elif model_name == "bitnet_mnist":
-        model = Bitnet_mnist()
+        model = Bitnet_mnist(
+            config["model"]["encoder_layers"], config["model"]["decoder_layers"]
+        )
     else:
         raise ValueError(f"Model {model_name} is not supported")
 
@@ -125,7 +132,7 @@ def get_plot_dir(config):
     """
     returns the plot directory and creates it if it does not exist.
     """
-    plot_dir = Path(f"./{config['run_id']}/plots")
+    plot_dir = Path(f"runs/{config['run_id']}/plots")
     if not plot_dir.exists():
         plot_dir.mkdir(parents=True)
 
@@ -136,7 +143,7 @@ def get_run_dir(config):
     """
     returns the run directory and creates it if it does not exist.
     """
-    run_dir = Path(f"./{config['run_id']}")
+    run_dir = Path(f"runs/{config['run_id']}")
     if not run_dir.exists():
         run_dir.mkdir(parents=True)
 

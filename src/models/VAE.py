@@ -11,6 +11,7 @@ class VAE(nn.Module):
     def __init__(
         self,
         layer,
+        activation_layer,
         encoder_layers=None,
         decoder_layers=None,
         input_dim=2,
@@ -21,8 +22,12 @@ class VAE(nn.Module):
             decoder_layers = [200, 200, 200]
         if encoder_layers is None:
             encoder_layers = [200, 200, 200]
+
         self.input_dim = input_dim
         self.latent_dim = latent_dim
+
+        self.encoder_layers = encoder_layers
+        self.decoder_layers = decoder_layers
 
         # for stats
         self.n_0 = 0
@@ -30,20 +35,20 @@ class VAE(nn.Module):
         self.n_minus_1 = 0
 
         # Encoder
-        layers = [layer(input_dim, encoder_layers[0]), nn.LeakyReLU(0.2)]
+        layers = [layer(input_dim, encoder_layers[0]), activation_layer]
         for i in range(1, len(encoder_layers)):
             layers.append(layer(encoder_layers[i - 1], encoder_layers[i]))
-            layers.append(nn.LeakyReLU(0.2))
+            layers.append(activation_layer)
         self.encoder = nn.Sequential(*layers)
 
         self.mean_layer = layer(encoder_layers[-1], latent_dim)  # For mu
         self.log_var_layer = layer(encoder_layers[-1], latent_dim)  # For log variance
 
         # Decoder
-        layers = [layer(latent_dim, decoder_layers[0]), nn.LeakyReLU(0.2)]
+        layers = [layer(latent_dim, decoder_layers[0]), activation_layer]
         for i in range(1, len(decoder_layers)):
             layers.append(layer(decoder_layers[i - 1], decoder_layers[i]))
-            layers.append(nn.LeakyReLU(0.2))
+            layers.append(activation_layer)
         layers.append(layer(decoder_layers[-1], input_dim))
         self.decoder = nn.Sequential(*layers)
 

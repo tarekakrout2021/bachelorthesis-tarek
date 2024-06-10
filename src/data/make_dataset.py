@@ -6,8 +6,6 @@ from torchvision.datasets import MNIST
 
 from src.utils.helpers import get_plot_dir, plot_data
 
-torch.manual_seed(0)
-
 
 def get_data(config):
     DATA = config["data"]["training_data"]

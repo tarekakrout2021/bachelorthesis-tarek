@@ -1,4 +1,5 @@
 import argparse
+import shutil
 
 import torch
 from data.make_dataset import get_data, plot_initial_data
@@ -16,6 +17,8 @@ from utils.helpers import (
 
 
 def main():
+    torch.manual_seed(0)
+
     run_id = generate_id()
     print(f"Run ID: {run_id}")
 
@@ -30,6 +33,18 @@ def main():
     parser.add_argument(
         "--training_data",
         help='can be either "normal" or "anisotropic" or "spiral" or "mnist".',
+    )
+    parser.add_argument(
+        "--encoder_layers",
+        type=int,
+        nargs="+",
+        help="array describing the encoder layer.",
+    )
+    parser.add_argument(
+        "--decoder_layers",
+        type=int,
+        nargs="+",
+        help="array describing the decoder layer.",
     )
 
     args = parser.parse_args()
@@ -62,6 +77,7 @@ def main():
 
     run_dir = get_run_dir(config)
     torch.save(model.state_dict(), run_dir / "model.pth")
+    shutil.copy("./model_config.yaml", run_dir / "config.yaml")
 
 
 if __name__ == "__main__":

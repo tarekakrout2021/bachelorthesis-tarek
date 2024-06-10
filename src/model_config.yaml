@@ -2,9 +2,19 @@ data:
   train_data_path: data/train
   training_data: anisotropic
 model:
+  decoder_layers:
+  - 100
+  - 100
+  - 100
+  - 100
+  encoder_layers:
+  - 100
+  - 100
+  - 100
+  - 100
   name: bitnet_synthetic
-run_id: b15f9fc8-9c75-4946-9812-5456b673f4d5
+run_id: 885052e4-d1dd-4cfc-b9ef-467b502a7819
 training:
   batch_size: 64
-  epochs: 50
+  epochs: 10
   learning_rate: 0.001

@@ -78,7 +78,7 @@ class BitLinear158Inference(nn.Linear):
         quant_input = input + (quant_input - input).detach()
 
         # out = obl.mat_mul(quant_input, self.weight) / self.beta / gamma  # TODO:  should be like this after using the kernel
-        out = F.linear(quant_input, self.weight) / self.beta / gamma
+        out = F.linear(quant_input / self.beta / gamma, self.weight)
         if self.bias is not None:
             out += self.bias.view(1, -1).expand_as(out)
 
