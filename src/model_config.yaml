@@ -13,7 +13,7 @@ model:
   - 100
   - 100
   name: bitnet_synthetic
-run_id: 885052e4-d1dd-4cfc-b9ef-467b502a7819
+run_id: d2438f75-0e28-43cc-b037-cd282a72c158
 training:
   batch_size: 64
   epochs: 10

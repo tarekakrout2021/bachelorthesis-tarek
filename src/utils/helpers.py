@@ -1,3 +1,4 @@
+import logging
 import uuid
 from pathlib import Path
 
@@ -12,14 +13,21 @@ from src.models.Bitnet_synthetic import Bitnet_synthetic
 
 
 def load_config(config_path):
-    with open(config_path, "r") as file:
-        config = yaml.safe_load(file)
-    return config
+    try:
+        with open(config_path, "r") as file:
+            config = yaml.safe_load(file)
+        return config
+    except Exception as e:
+        print(f"Error loading YAML file: {e}")
+        print(f"File path: {config_path}")
+        return None
 
 
 def save_config(file_path, config):
     with open(file_path, "w") as file:
         yaml.safe_dump(config, file)
+        # file.flush()  # Ensure the data is written to the disk
+        # os.fsync(file.fileno())  # Ensure all OS-level buffers are flushed
 
 
 def update_config(config, args):
@@ -163,3 +171,21 @@ def plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir):
 
 def generate_id():
     return str(uuid.uuid4())
+
+
+def log_model_info(run_dir, config):
+    logging.basicConfig(
+        filename=run_dir / "test.log",
+        filemode="a",
+        format="%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+        datefmt="%H:%M:%S",
+        level=logging.DEBUG,
+    )
+
+    logging.info("Model configuration: ")
+
+    logger = logging.getLogger("logger")
+    logger.info(f"epochs : {config['training']['epochs']}")
+    logger.info(f"lr : {config['training']['learning_rate']}")
+    logger.info(f"encoder_layers : {config['model']['encoder_layers']}")
+    logger.info(f"decoder_layers : {config['model']['decoder_layers']}")

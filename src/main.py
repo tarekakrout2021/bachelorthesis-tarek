@@ -1,6 +1,6 @@
 import argparse
-import shutil
 
+# import shutil
 import torch
 from data.make_dataset import get_data, plot_initial_data
 from eval.evaluate import evaluate
@@ -11,6 +11,7 @@ from utils.helpers import (
     get_model,
     get_run_dir,
     load_config,
+    log_model_info,
     save_config,
     update_config,
 )
@@ -51,11 +52,9 @@ def main():
 
     # TODO : maybe overcomplicated solution with config file ?
     config = load_config("./model_config.yaml")
-    updated_config = update_config(config, args)
-    updated_config["run_id"] = run_id
-    save_config("./model_config.yaml", updated_config)
-
-    config = updated_config
+    config = update_config(config, args)
+    config["run_id"] = run_id
+    save_config("./model_config.yaml", config)
 
     data = get_data(config)
     if config["data"]["training_data"] != "mnist":
@@ -77,7 +76,8 @@ def main():
 
     run_dir = get_run_dir(config)
     torch.save(model.state_dict(), run_dir / "model.pth")
-    shutil.copy("./model_config.yaml", run_dir / "config.yaml")
+    log_model_info(run_dir, config)
+    # shutil.copy("./model_config.yaml", run_dir / "config.yaml")
 
 
 if __name__ == "__main__":
