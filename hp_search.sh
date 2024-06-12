@@ -6,9 +6,9 @@
 
 # Define arrays of hyperparameter values
 learning_rates=(0.001 0.0003)
-epochs=(10 50 100)
-encoder_layers=("200 400 400" "300 600 600 600")
-decoder_layers=("200 400 400 400" "300 500 500 500")
+epochs=(10 40) # 100
+encoder_layers=("200 400 400" "200 500 500" ) # "300 600 600 600"
+decoder_layers=("300 500 500 500" "200 400 400 400")
 
 # Iterate over each combination of hyperparameters
 for lr in "${learning_rates[@]}"; do
