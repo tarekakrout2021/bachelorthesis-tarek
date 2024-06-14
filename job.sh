@@ -6,4 +6,4 @@
 
 apptainer run --nv python_container.sif bash -c "export PYTHONPATH=\$PYTHONPATH:`pwd`
 cd src
-python3 main.py --model 'bitnet_mnist' --epoch 2 --training_data 'mnist' --learning_rate 0.001 --encoder_layers 200 400 400 --decoder_layers 300 500 500 500"
+python3 main.py --model 'bitnet_mnist' --epoch 20 --training_data 'mnist' --learning_rate 0.001 --encoder_layers 512 256 --decoder_layers 256 512 --latent_dim 8"

@@ -45,6 +45,8 @@ def update_config(config, args):
         config["model"]["encoder_layers"] = args.encoder_layers
     if args.decoder_layers:
         config["model"]["decoder_layers"] = args.decoder_layers
+    if args.latent_dim:
+        config["model"]["latent_dim"] = args.latent_dim
 
     return config
 
@@ -76,7 +78,9 @@ def get_model(config):
         model = Bitnet_synthetic()
     elif model_name == "bitnet_mnist":
         model = Bitnet_mnist(
-            config["model"]["encoder_layers"], config["model"]["decoder_layers"]
+            config["model"]["encoder_layers"],
+            config["model"]["decoder_layers"],
+            config["model"]["latent_dim"],
         )
     else:
         raise ValueError(f"Model {model_name} is not supported")
@@ -189,3 +193,4 @@ def log_model_info(run_dir, config):
     logger.info(f"lr : {config['training']['learning_rate']}")
     logger.info(f"encoder_layers : {config['model']['encoder_layers']}")
     logger.info(f"decoder_layers : {config['model']['decoder_layers']}")
+    logger.info(f"latent_dim : {config['model']['latent_dim']}")

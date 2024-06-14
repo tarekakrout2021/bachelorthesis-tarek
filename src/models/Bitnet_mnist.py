@@ -6,15 +6,16 @@ from src.models.VAE import VAE
 
 
 class Bitnet_mnist(VAE):
-    def __init__(self, encoder_layers, decoder_layers):
+    def __init__(self, encoder_layers, decoder_layers, latent_dim):
         super().__init__(
             layer=BitLinear158,
             activation_layer=nn.ReLU(),
             input_dim=784,
-            latent_dim=2,
+            latent_dim=latent_dim,
             encoder_layers=encoder_layers,
             decoder_layers=decoder_layers,
         )
+        self.latent_dim = latent_dim
         self.decoder.append(nn.Sigmoid())
         print(self)
 
@@ -23,7 +24,9 @@ class Bitnet_mnist(VAE):
         Sample from p(z) and decode.
         """
         with torch.no_grad():
-            z = torch.randn(n_samples, 2).to(device)  # Sample from N(0, I)
+            z = torch.randn(n_samples, self.latent_dim).to(
+                device
+            )  # Sample from N(0, I)
             self.to(device)
             sampled_data = self.decode(z).cpu()
 

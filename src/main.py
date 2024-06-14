@@ -31,6 +31,7 @@ def main():
     parser.add_argument("--batch_size", type=int, help="Batch size.")
     parser.add_argument("--epochs", type=int, help="Number of epochs.")
     parser.add_argument("--learning_rate", type=float, help="Learning rate.")
+    parser.add_argument("--latent_dim", type=int, help="Latent dimension.")
     parser.add_argument(
         "--training_data",
         help='can be either "normal" or "anisotropic" or "spiral" or "mnist".',

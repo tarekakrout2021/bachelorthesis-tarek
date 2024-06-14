@@ -13,8 +13,8 @@ def evaluate(model, data_loader, config):
         model.change_to_inference()
         print(model)
 
-        assert model.mode == "inference"
-        helpers.plot_latent_space(model, config)
+        # assert model.mode == "inference"
+        # helpers.plot_latent_space(model, config)
 
         # Inference mode: reconstruct data
         assert model.mode == "inference"
