@@ -8,7 +8,7 @@ from src.utils.helpers import get_plot_dir, plot_data
 
 
 def get_data(config):
-    DATA = config["data"]["training_data"]
+    DATA = config.training_data
 
     def generate_gaussian_data(n_samples=1000, mean=[0, 0], cov=[[1, 0], [0, 1]]):
         data = np.random.multivariate_normal(mean, cov, n_samples)

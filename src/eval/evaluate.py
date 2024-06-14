@@ -6,7 +6,7 @@ from src.utils import helpers
 
 
 def evaluate(model, data_loader, config):
-    model_name = config["model"]["name"]
+    model_name = config.name
     PLOT_DIR = helpers.get_plot_dir(config)
 
     if model_name == "bitnet_mnist":

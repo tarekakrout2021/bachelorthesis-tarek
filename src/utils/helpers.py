@@ -1,3 +1,4 @@
+import argparse
 import logging
 import uuid
 from pathlib import Path
@@ -5,50 +6,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import yaml
 
 from src.models.Baseline_synthetic import Baseline_synthetic
 from src.models.Bitnet_mnist import Bitnet_mnist
 from src.models.Bitnet_synthetic import Bitnet_synthetic
-
-
-def load_config(config_path):
-    try:
-        with open(config_path, "r") as file:
-            config = yaml.safe_load(file)
-        return config
-    except Exception as e:
-        print(f"Error loading YAML file: {e}")
-        print(f"File path: {config_path}")
-        return None
-
-
-def save_config(file_path, config):
-    with open(file_path, "w") as file:
-        yaml.safe_dump(config, file)
-        # file.flush()  # Ensure the data is written to the disk
-        # os.fsync(file.fileno())  # Ensure all OS-level buffers are flushed
-
-
-def update_config(config, args):
-    if args.batch_size:
-        config["training"]["batch_size"] = args.batch_size
-    if args.epochs:
-        config["training"]["epochs"] = args.epochs
-    if args.learning_rate:
-        config["training"]["learning_rate"] = args.learning_rate
-    if args.training_data:
-        config["data"]["training_data"] = args.training_data
-    if args.model:
-        config["model"]["name"] = args.model
-    if args.encoder_layers:
-        config["model"]["encoder_layers"] = args.encoder_layers
-    if args.decoder_layers:
-        config["model"]["decoder_layers"] = args.decoder_layers
-    if args.latent_dim:
-        config["model"]["latent_dim"] = args.latent_dim
-
-    return config
+from src.utils.Config import Config
 
 
 def plot_data(
@@ -70,7 +32,7 @@ def plot_data(
 
 
 def get_model(config):
-    model_name = config["model"]["name"]
+    model_name = config.name
 
     if model_name == "baseline_synthetic":
         model = Baseline_synthetic()
@@ -78,9 +40,9 @@ def get_model(config):
         model = Bitnet_synthetic()
     elif model_name == "bitnet_mnist":
         model = Bitnet_mnist(
-            config["model"]["encoder_layers"],
-            config["model"]["decoder_layers"],
-            config["model"]["latent_dim"],
+            config.encoder_layers,
+            config.decoder_layers,
+            config.latent_dim,
         )
     else:
         raise ValueError(f"Model {model_name} is not supported")
@@ -144,7 +106,7 @@ def get_plot_dir(config):
     """
     returns the plot directory and creates it if it does not exist.
     """
-    plot_dir = Path(f"runs/{config['run_id']}/plots")
+    plot_dir = Path(f"runs/{config.run_id}/plots")
     if not plot_dir.exists():
         plot_dir.mkdir(parents=True)
 
@@ -155,7 +117,7 @@ def get_run_dir(config):
     """
     returns the run directory and creates it if it does not exist.
     """
-    run_dir = Path(f"runs/{config['run_id']}")
+    run_dir = Path(f"runs/{config.run_id}")
     if not run_dir.exists():
         run_dir.mkdir(parents=True)
 
@@ -187,10 +149,61 @@ def log_model_info(run_dir, config):
     )
 
     logging.info("Model configuration: ")
-
     logger = logging.getLogger("logger")
-    logger.info(f"epochs : {config['training']['epochs']}")
-    logger.info(f"lr : {config['training']['learning_rate']}")
-    logger.info(f"encoder_layers : {config['model']['encoder_layers']}")
-    logger.info(f"decoder_layers : {config['model']['decoder_layers']}")
-    logger.info(f"latent_dim : {config['model']['latent_dim']}")
+    logger.info(config)
+
+
+def get_args():
+    parser = argparse.ArgumentParser(description="Update YAML configuration.")
+    parser.add_argument(
+        "--model",
+        help='Model name. Can be either "baseline_synthetic" or "bitnet_synthetic" or "bitnet_mnist".',
+    )
+    parser.add_argument("--batch_size", type=int, help="Batch size.")
+    parser.add_argument("--epochs", type=int, help="Number of epochs.")
+    parser.add_argument("--learning_rate", type=float, help="Learning rate.")
+    parser.add_argument("--latent_dim", type=int, help="Latent dimension.")
+    parser.add_argument(
+        "--training_data",
+        help='can be either "normal" or "anisotropic" or "spiral" or "mnist".',
+    )
+    parser.add_argument(
+        "--encoder_layers",
+        type=int,
+        nargs="+",
+        help="array describing the encoder layer.",
+    )
+    parser.add_argument(
+        "--decoder_layers",
+        type=int,
+        nargs="+",
+        help="array describing the decoder layer.",
+    )
+
+    args = parser.parse_args()
+    return args
+
+
+def get_config(run_id):
+    args = get_args()
+    config = Config()
+    config.run_id = run_id
+
+    if args.batch_size:
+        config.batch_size = args.batch_size
+    if args.epochs:
+        config.epochs = args.epochs
+    if args.learning_rate:
+        config.learning_rate = args.learning_rate
+    if args.latent_dim:
+        config.latent_dim = args.latent_dim
+    if args.training_data:
+        config.training_data = args.training_data
+    if args.model:
+        config.name = args.model
+    if args.encoder_layers:
+        config.encoder_layers = args.encoder_layers
+    if args.decoder_layers:
+        config.decoder_layers = args.decoder_layers
+
+    return config

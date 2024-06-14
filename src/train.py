@@ -4,8 +4,8 @@ from src.utils.helpers import get_plot_dir, plot_loss
 
 
 def train(model, optimizer, data_loader, config):
-    n_epochs = config["training"]["epochs"]
-    model_name = config["model"]["name"]
+    n_epochs = config.epochs
+    model_name = config.name
     plot_dir = get_plot_dir(config)
 
     # TODO: there is probably a better way to do this..
