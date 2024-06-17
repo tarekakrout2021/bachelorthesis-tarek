@@ -15,7 +15,7 @@ def get_data(config):
         return torch.tensor(data, dtype=torch.float32)
 
     def generate_anisotropic_single_gaussian(n_samples=1000):
-        X = generate_gaussian_data()
+        X = generate_gaussian_data(n_samples)
         transformation_matrix = np.array([[5, 0], [0, 2]])
         rot_mat = np.array(
             [[np.sqrt(2) / 2, -np.sqrt(2) / 2], [np.sqrt(2) / 2, np.sqrt(2) / 2]]

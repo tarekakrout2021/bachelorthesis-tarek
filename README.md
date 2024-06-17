@@ -13,7 +13,7 @@ pre-commit run --all-files  # to run manually before a commit
 ### Container
 From the repo root:
 ```bash
-apptainer build --fakeroot main.sif main.def
+apptainer build python_container.sif python_container.def
 ```
 
 ### Run the code

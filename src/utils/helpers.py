@@ -35,9 +35,17 @@ def get_model(config):
     model_name = config.name
 
     if model_name == "baseline_synthetic":
-        model = Baseline_synthetic()
+        model = Baseline_synthetic(
+            config.encoder_layers,
+            config.decoder_layers,
+            config.latent_dim,
+        )
     elif model_name == "bitnet_synthetic":
-        model = Bitnet_synthetic()
+        model = Bitnet_synthetic(
+            config.encoder_layers,
+            config.decoder_layers,
+            config.latent_dim,
+        )
     elif model_name == "bitnet_mnist":
         model = Bitnet_mnist(
             config.encoder_layers,
