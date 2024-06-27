@@ -147,9 +147,9 @@ def evaluate(model, data_loader, config):
             assert model.mode == "inference"
             model.weight_stats()
 
-            # print(f"Stats: {model.n_0} zeros in ternary weights")
-            # print(f"Stats: {model.n_1} ones in ternary weights")
-            # print(f"Stats: {model.n_minus_1} minus ones in ternary weights")
+            print(f"Stats: {model.n_0} zeros in ternary weights")
+            print(f"Stats: {model.n_1} ones in ternary weights")
+            print(f"Stats: {model.n_minus_1} minus ones in ternary weights")
 
             helpers.plot_bar(
                 counts=[model.n_minus_1, model.n_0, model.n_1],

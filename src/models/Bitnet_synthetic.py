@@ -13,4 +13,5 @@ class Bitnet_synthetic(VAE):
             decoder_layers=decoder_layers,
             latent_dim=latent_dim,
         )
+        self.latent_dim = latent_dim
         print(self)
