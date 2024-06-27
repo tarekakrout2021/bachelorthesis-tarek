@@ -81,7 +81,6 @@ def evaluate(model, data_loader, config, logger):
             y="Latent Dimension 2",
             path=plot_dir,
         )
-        logger.info(f"plotted at {plot_dir.absolute().resolve()}")
 
         if "bitnet" in model_name:
             model.change_to_inference()
