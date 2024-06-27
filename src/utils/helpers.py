@@ -14,11 +14,11 @@ from src.utils.Config import Config
 
 
 def plot_data(
-    data,
-    title="Input data",
-    x="Dimension 1",
-    y="Dimension 2",
-    path="data.png",
+        data,
+        title="Input data",
+        x="Dimension 1",
+        y="Dimension 2",
+        path="data.png",
 ):
     plt.figure(figsize=(8, 6))
     plt.scatter(data[:, 0], data[:, 1], alpha=0.5)
@@ -90,8 +90,8 @@ def plot_latent_space(model, config, scale=1.0, n=25, digit_size=28, figsize=15)
             x_decoded = model.decode(z_sample)
             digit = x_decoded[0].detach().cpu().reshape(digit_size, digit_size)
             figure[
-                i * digit_size : (i + 1) * digit_size,
-                j * digit_size : (j + 1) * digit_size,
+            i * digit_size: (i + 1) * digit_size,
+            j * digit_size: (j + 1) * digit_size,
             ] = digit
 
     plt.figure(figsize=(figsize, figsize))
@@ -147,7 +147,7 @@ def generate_id():
     return str(uuid.uuid4())
 
 
-def log_model_info(run_dir, config):
+def init_logger(run_dir):
     logging.basicConfig(
         filename=run_dir / "test.log",
         filemode="a",
@@ -156,8 +156,13 @@ def log_model_info(run_dir, config):
         level=logging.DEBUG,
     )
 
-    logging.info("Model configuration: ")
     logger = logging.getLogger("logger")
+
+    return logger
+
+
+def log_model_info(logger, config):
+    logging.info("Model configuration: ")
     logger.info(config)
 
 
@@ -188,6 +193,8 @@ def get_args():
         help="array describing the decoder layer.",
     )
 
+    parser.add_argument("--id", help="id of the run.")
+
     args = parser.parse_args()
     return args
 
@@ -213,5 +220,8 @@ def get_config(run_id):
         config.encoder_layers = args.encoder_layers
     if args.decoder_layers:
         config.decoder_layers = args.decoder_layers
+    # if there is a run_id in the arguments, use it.
+    if args.id:
+        config.run_id = args.id
 
     return config

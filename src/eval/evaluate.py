@@ -5,13 +5,13 @@ import torch
 from src.utils import helpers
 
 
-def evaluate(model, data_loader, config):
+def evaluate(model, data_loader, config, logger):
     model_name = config.name
     PLOT_DIR = helpers.get_plot_dir(config)
 
     if model_name == "bitnet_mnist":
         model.change_to_inference()
-        print(model)
+        logger.info(model)
 
         # assert model.mode == "inference"
         # helpers.plot_latent_space(model, config)
@@ -54,9 +54,9 @@ def evaluate(model, data_loader, config):
 
         model.weight_stats()
 
-        print(f"Stats: {model.n_0} zeros in ternary weights")
-        print(f"Stats: {model.n_1} ones in ternary weights")
-        print(f"Stats: {model.n_minus_1} minus ones in ternary weights")
+        logger.info(f"Stats: {model.n_0} zeros in ternary weights")
+        logger.info(f"Stats: {model.n_1} ones in ternary weights")
+        logger.info(f"Stats: {model.n_minus_1} minus ones in ternary weights")
 
         helpers.plot_bar(
             [model.n_minus_1, model.n_0, model.n_1],
@@ -81,17 +81,17 @@ def evaluate(model, data_loader, config):
             y="Latent Dimension 2",
             path=plot_dir,
         )
-        print(f"plotted at {plot_dir.absolute().resolve()}")
+        logger.info(f"plotted at {plot_dir.absolute().resolve()}")
 
         if "bitnet" in model_name:
             model.change_to_inference()
 
         # Sanity checks
-        print(model)  # Check whether all BitLinear layers are set to inference mode
+        logger.info(model)  # Check whether all BitLinear layers are set to inference mode
         # Check whether weights are ternary
         # for name, param in list(model.named_parameters())[:2]:
         #     if param.requires_grad:
-        #         print(name, param.data)
+        #         logger.info(name, param.data)
 
         # Inference mode: plot q(z|x) in inference mode
         if "bitnet" in model_name:
@@ -147,9 +147,9 @@ def evaluate(model, data_loader, config):
             assert model.mode == "inference"
             model.weight_stats()
 
-            print(f"Stats: {model.n_0} zeros in ternary weights")
-            print(f"Stats: {model.n_1} ones in ternary weights")
-            print(f"Stats: {model.n_minus_1} minus ones in ternary weights")
+            logger.info(f"Stats: {model.n_0} zeros in ternary weights")
+            logger.info(f"Stats: {model.n_1} ones in ternary weights")
+            logger.info(f"Stats: {model.n_minus_1} minus ones in ternary weights")
 
             helpers.plot_bar(
                 counts=[model.n_minus_1, model.n_0, model.n_1],
