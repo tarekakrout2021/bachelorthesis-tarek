@@ -86,7 +86,9 @@ def evaluate(model, data_loader, config, logger):
             model.change_to_inference()
 
         # Sanity checks
-        logger.info(model)  # Check whether all BitLinear layers are set to inference mode
+        logger.info(
+            model
+        )  # Check whether all BitLinear layers are set to inference mode
         # Check whether weights are ternary
         # for name, param in list(model.named_parameters())[:2]:
         #     if param.requires_grad:

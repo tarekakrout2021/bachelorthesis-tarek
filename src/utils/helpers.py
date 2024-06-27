@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from torch import nn
 
 from src.models.Baseline_synthetic import Baseline_synthetic
 from src.models.Bitnet_mnist import Bitnet_mnist
@@ -14,11 +15,11 @@ from src.utils.Config import Config
 
 
 def plot_data(
-        data,
-        title="Input data",
-        x="Dimension 1",
-        y="Dimension 2",
-        path="data.png",
+    data,
+    title="Input data",
+    x="Dimension 1",
+    y="Dimension 2",
+    path="data.png",
 ):
     plt.figure(figsize=(8, 6))
     plt.scatter(data[:, 0], data[:, 1], alpha=0.5)
@@ -39,18 +40,39 @@ def get_model(config):
             config.encoder_layers,
             config.decoder_layers,
             config.latent_dim,
+            activation_layer=nn.ReLU()
+            if config.activation_layer == "ReLU"
+            else nn.Sigmoid()
+            if config.activation_layer == "Sigmoid"
+            else nn.Tanh()
+            if config.activation_layer == "tanh"
+            else nn.ReLU(),
         )
     elif model_name == "bitnet_synthetic":
         model = Bitnet_synthetic(
             config.encoder_layers,
             config.decoder_layers,
             config.latent_dim,
+            activation_layer=nn.ReLU()
+            if config.activation_layer == "ReLU"
+            else nn.Sigmoid()
+            if config.activation_layer == "Sigmoid"
+            else nn.Tanh()
+            if config.activation_layer == "tanh"
+            else nn.ReLU(),
         )
     elif model_name == "bitnet_mnist":
         model = Bitnet_mnist(
             config.encoder_layers,
             config.decoder_layers,
             config.latent_dim,
+            activation_layer=nn.ReLU()
+            if config.activation_layer == "ReLU"
+            else nn.Sigmoid()
+            if config.activation_layer == "Sigmoid"
+            else nn.Tanh()
+            if config.activation_layer == "tanh"
+            else nn.ReLU(),
         )
     else:
         raise ValueError(f"Model {model_name} is not supported")
@@ -90,8 +112,8 @@ def plot_latent_space(model, config, scale=1.0, n=25, digit_size=28, figsize=15)
             x_decoded = model.decode(z_sample)
             digit = x_decoded[0].detach().cpu().reshape(digit_size, digit_size)
             figure[
-            i * digit_size: (i + 1) * digit_size,
-            j * digit_size: (j + 1) * digit_size,
+                i * digit_size : (i + 1) * digit_size,
+                j * digit_size : (j + 1) * digit_size,
             ] = digit
 
     plt.figure(figsize=(figsize, figsize))
@@ -177,6 +199,9 @@ def get_args():
     parser.add_argument("--learning_rate", type=float, help="Learning rate.")
     parser.add_argument("--latent_dim", type=int, help="Latent dimension.")
     parser.add_argument(
+        "--activation_layer", help="activation layer can be ReLU, Sigmoid or tanh."
+    )
+    parser.add_argument(
         "--training_data",
         help='can be either "normal" or "anisotropic" or "spiral" or "mnist".',
     )
@@ -223,5 +248,7 @@ def get_config(run_id):
     # if there is a run_id in the arguments, use it.
     if args.id:
         config.run_id = args.id
+    if args.activation_layer:
+        config.activation_layer = args.activation_layer
 
     return config

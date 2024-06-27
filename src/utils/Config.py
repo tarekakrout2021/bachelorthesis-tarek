@@ -14,6 +14,7 @@ class Config:
     decoder_layers: List[int] = field(default_factory=lambda: [200, 200, 200])
     encoder_layers: List[int] = field(default_factory=lambda: [200, 200, 200])
     name: str = field(default="bitnet_synthetic")
+    activation_layer: str = field(default="ReLU")
     run_id: str = field(default="0")
 
     # Training parameters

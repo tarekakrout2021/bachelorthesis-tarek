@@ -24,16 +24,38 @@ def get_data(config):
         data = np.dot(X, transformation_matrix)
         return torch.tensor(data, dtype=torch.float32)
 
-    def generate_spiral_data(n_samples=1000, noise=0.5):
-        theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
-        r = 2 * theta + noise * np.random.randn(n_samples)
-        x = r * np.cos(theta)
-        y = r * np.sin(theta)
-        res = np.vstack((x, y)).T
-        return torch.tensor(res, dtype=torch.float32)
+    # def generate_spiral_data(n_samples=1000, noise=0.5):
+    #     theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
+    #     r = 2 * theta + noise * np.random.randn(n_samples)
+    #     x = r * np.cos(theta)
+    #     y = r * np.sin(theta)
+    #     res = np.vstack((x, y)).T
+    #     return torch.tensor(res, dtype=torch.float32)
+
+    def generate_spiral_data(n_points=1000, noise=0.05):
+        n = np.sqrt(np.random.rand(n_points, 1))  # Radius
+        theta = np.random.rand(n_points, 1) * 2 * np.pi  # Angle
+        x1 = n * np.cos(theta)
+        x2 = n * np.sin(theta)
+        x = np.concatenate((x1, x2), axis=1)
+
+        # Apply spiral transformation
+        r = np.linspace(0, 1, n_points)
+        t = np.linspace(0, 4 * np.pi, n_points)
+        x[:, 0] = r * np.cos(t)
+        x[:, 1] = r * np.sin(t)
+
+        # Add noise
+        # x += noise * np.random.randn(n_points, 2)
+
+        # Normalize
+        x -= np.mean(x, axis=0)
+        x /= np.std(x, axis=0)
+
+        return torch.tensor(x, dtype=torch.float32)
 
     def mnist_data():
-        # create a transofrm to apply to each datapoint
+        # create a transform to apply to each datapoint
         transform = transforms.Compose([transforms.ToTensor()])
 
         # download the MNIST datasets

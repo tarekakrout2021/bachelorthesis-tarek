@@ -6,18 +6,18 @@ from src.models.VAE import VAE
 
 
 class Bitnet_mnist(VAE):
-    def __init__(self, encoder_layers, decoder_layers, latent_dim):
+    def __init__(self, encoder_layers, decoder_layers, latent_dim, activation_layer):
         super().__init__(
             layer=BitLinear158,
-            activation_layer=nn.ReLU(),
+            activation_layer=activation_layer,
             input_dim=784,
             latent_dim=latent_dim,
             encoder_layers=encoder_layers,
             decoder_layers=decoder_layers,
         )
+        self.activation_layer = activation_layer
         self.latent_dim = latent_dim
         self.decoder.append(nn.Sigmoid())
-        print(self)
 
     def sample(self, n_samples=100, device="cpu"):
         """
