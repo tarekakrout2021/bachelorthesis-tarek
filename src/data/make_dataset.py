@@ -4,17 +4,20 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
+from src.utils.Config import Config
 from src.utils.helpers import get_plot_dir, plot_data
 
 
-def get_data(config):
+def get_data(config: Config):
     DATA = config.training_data
 
-    def generate_gaussian_data(n_samples=1000, mean=[0, 0], cov=[[1, 0], [0, 1]]):
+    def generate_gaussian_data(n_samples: int = 1000) -> torch.Tensor:
+        mean = [0, 0]
+        cov = [[1, 0], [0, 1]]
         data = np.random.multivariate_normal(mean, cov, n_samples)
         return torch.tensor(data, dtype=torch.float32)
 
-    def generate_anisotropic_single_gaussian(n_samples=1000):
+    def generate_anisotropic_single_gaussian(n_samples: int = 1000) -> torch.Tensor:
         X = generate_gaussian_data(n_samples)
         transformation_matrix = np.array([[5, 0], [0, 2]])
         rot_mat = np.array(
@@ -24,37 +27,37 @@ def get_data(config):
         data = np.dot(X, transformation_matrix)
         return torch.tensor(data, dtype=torch.float32)
 
-    # def generate_spiral_data(n_samples=1000, noise=0.5):
-    #     theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
-    #     r = 2 * theta + noise * np.random.randn(n_samples)
-    #     x = r * np.cos(theta)
-    #     y = r * np.sin(theta)
-    #     res = np.vstack((x, y)).T
-    #     return torch.tensor(res, dtype=torch.float32)
+    def generate_spiral_data(n_samples: int = 1000, noise: float = 0.5) -> torch.Tensor:
+        theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
+        r = 2 * theta + noise * np.random.randn(n_samples)
+        x = r * np.cos(theta)
+        y = r * np.sin(theta)
+        res = np.vstack((x, y)).T
+        return torch.tensor(res, dtype=torch.float32)
 
-    def generate_spiral_data(n_points=1000, noise=0.05):
-        n = np.sqrt(np.random.rand(n_points, 1))  # Radius
-        theta = np.random.rand(n_points, 1) * 2 * np.pi  # Angle
-        x1 = n * np.cos(theta)
-        x2 = n * np.sin(theta)
-        x = np.concatenate((x1, x2), axis=1)
+    # def generate_spiral_data(n_points=1000, noise=0.05):
+    #     n = np.sqrt(np.random.rand(n_points, 1))  # Radius
+    #     theta = np.random.rand(n_points, 1) * 2 * np.pi  # Angle
+    #     x1 = n * np.cos(theta)
+    #     x2 = n * np.sin(theta)
+    #     x = np.concatenate((x1, x2), axis=1)
+    #
+    #     # Apply spiral transformation
+    #     r = np.linspace(0, 1, n_points)
+    #     t = np.linspace(0, 4 * np.pi, n_points)
+    #     x[:, 0] = r * np.cos(t)
+    #     x[:, 1] = r * np.sin(t)
+    #
+    #     # Add noise
+    #     x += noise * np.random.randn(n_points, 2)
+    #
+    #     # Normalize
+    #     x -= np.mean(x, axis=0)
+    #     x /= np.std(x, axis=0)
+    #
+    #     return torch.tensor(x, dtype=torch.float32)
 
-        # Apply spiral transformation
-        r = np.linspace(0, 1, n_points)
-        t = np.linspace(0, 4 * np.pi, n_points)
-        x[:, 0] = r * np.cos(t)
-        x[:, 1] = r * np.sin(t)
-
-        # Add noise
-        # x += noise * np.random.randn(n_points, 2)
-
-        # Normalize
-        x -= np.mean(x, axis=0)
-        x /= np.std(x, axis=0)
-
-        return torch.tensor(x, dtype=torch.float32)
-
-    def mnist_data():
+    def mnist_data() -> DataLoader:
         # create a transform to apply to each datapoint
         transform = transforms.Compose([transforms.ToTensor()])
 
@@ -81,7 +84,7 @@ def get_data(config):
     raise ValueError(f"Invalid data type {DATA}")
 
 
-def plot_initial_data(data, config):
+def plot_initial_data(data: torch.Tensor, config: Config) -> None:
     plot_dir = get_plot_dir(config)
     plot_dir = plot_dir / "initial_data.png"
     plot_data(

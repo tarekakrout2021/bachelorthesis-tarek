@@ -7,9 +7,9 @@
 # Define arrays of hyperparameter values
 learning_rates=(0.001 0.0003)
 epochs=(10 40) # 100
-latent_dim=(2 5 8)
-encoder_layers=("512 256" "512 256 128" )
-decoder_layers=("256 512" "128 256 512")
+latent_dim=(5 8 11)
+encoder_layers=("200 200" "400 400" )
+decoder_layers=("200 200" "400 400")
 
 id=0
 # Iterate over each combination of hyperparameters
@@ -26,7 +26,16 @@ for lr in "${learning_rates[@]}"; do
 #SBATCH --ntasks-per-node=2
 #SBATCH --output=logs/job-%j.out
 
-apptainer run --nv python_container.sif bash -c "export PYTHONPATH=\$PYTHONPATH:\`pwd\` && cd src && python3 main.py --model 'baseline_synthetic' --epoch ${epoch} --training_data 'spiral' --learning_rate ${lr} --encoder_layers ${enc_layers} --decoder_layers ${dec_layers} --latent_dim ${latent_dim} --id ${id}"
+apptainer run --nv python_container.sif bash -c "export PYTHONPATH=\$PYTHONPATH:\`pwd\` \
+          && cd src && python3 main.py \
+            --model 'baseline_synthetic' \
+            --epoch ${epoch} \
+            --training_data 'spiral' \
+            --learning_rate ${lr} \
+            --encoder_layers ${enc_layers} \
+            --decoder_layers ${dec_layers} \
+            --latent_dim ${latent_dim} \
+            --id ${id}"
 EOT
         done
       done

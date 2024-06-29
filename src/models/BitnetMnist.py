@@ -5,7 +5,7 @@ from src.models.Bitlinear158 import BitLinear158
 from src.models.VAE import VAE
 
 
-class Bitnet_mnist(VAE):
+class BitnetMnist(VAE):
     def __init__(self, encoder_layers, decoder_layers, latent_dim, activation_layer):
         super().__init__(
             layer=BitLinear158,

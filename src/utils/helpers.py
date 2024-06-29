@@ -8,9 +8,9 @@ import numpy as np
 import torch
 from torch import nn
 
-from src.models.Baseline_synthetic import Baseline_synthetic
-from src.models.Bitnet_mnist import Bitnet_mnist
-from src.models.Bitnet_synthetic import Bitnet_synthetic
+from src.models.BaselineSynthetic import BaselineSynthetic
+from src.models.BitnetMnist import BitnetMnist
+from src.models.BitnetSynthetic import BitnetSynthetic
 from src.utils.Config import Config
 
 
@@ -36,7 +36,7 @@ def get_model(config):
     model_name = config.name
 
     if model_name == "baseline_synthetic":
-        model = Baseline_synthetic(
+        model = BaselineSynthetic(
             config.encoder_layers,
             config.decoder_layers,
             config.latent_dim,
@@ -49,7 +49,7 @@ def get_model(config):
             else nn.ReLU(),
         )
     elif model_name == "bitnet_synthetic":
-        model = Bitnet_synthetic(
+        model = BitnetSynthetic(
             config.encoder_layers,
             config.decoder_layers,
             config.latent_dim,
@@ -62,7 +62,7 @@ def get_model(config):
             else nn.ReLU(),
         )
     elif model_name == "bitnet_mnist":
-        model = Bitnet_mnist(
+        model = BitnetMnist(
             config.encoder_layers,
             config.decoder_layers,
             config.latent_dim,
