@@ -19,7 +19,7 @@ apptainer build python_container.sif python_container.def
 ### Run the code
 From the root folder:
 ```bash
-export PYTHONPATH=$PYTHONPATH:`PWD`
+export PYTHONPATH=$PYTHONPATH:`pwd`
 ```
 
 From the src folder (example):
