@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torchvision.transforms as transforms
+from sklearn.datasets import make_moons
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
@@ -17,6 +18,26 @@ def get_data(config: Config):
         data = np.random.multivariate_normal(mean, cov, n_samples)
         return torch.tensor(data, dtype=torch.float32)
 
+    def generate_mixture_of_gaussians(n_samples: int = 15_000) -> torch.Tensor:
+        mean1 = [0, 0]
+        cov1 = [[1, 0], [0, 1]]
+        data1 = np.random.multivariate_normal(mean1, cov1, n_samples // 3)
+        mean2 = [5, 5]
+        cov2 = [[1, 0], [0, 1]]
+        data2 = np.random.multivariate_normal(mean2, cov2, n_samples // 3)
+        mean3 = [-10, 10]
+        cov3 = [[0.5, 0], [0, 0.5]]
+        data3 = np.random.multivariate_normal(mean3, cov3, n_samples // 3)
+        data = np.vstack((data1, data2))
+        data = np.vstack((data, data3))
+        return torch.tensor(data, dtype=torch.float32)
+
+    def generate_moons(num_samples: int = 1_000, noise=0.1):
+        x = make_moons(n_samples=num_samples, noise=noise)
+        # make_moons returns a tuple with the first element being the data and the second being the labels
+        # we don't need the labels, so we return the first element
+        return torch.tensor(x[0], dtype=torch.float32)
+
     def generate_anisotropic_single_gaussian(n_samples: int = 1000) -> torch.Tensor:
         X = generate_gaussian_data(n_samples)
         transformation_matrix = np.array([[5, 0], [0, 2]])
@@ -27,35 +48,13 @@ def get_data(config: Config):
         data = np.dot(X, transformation_matrix)
         return torch.tensor(data, dtype=torch.float32)
 
-    def generate_spiral_data(n_samples: int = 1000, noise: float = 0.5) -> torch.Tensor:
+    def generate_spiral_data(n_samples: int = 10_000, noise: float = 0.5) -> torch.Tensor:
         theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
         r = 2 * theta + noise * np.random.randn(n_samples)
         x = r * np.cos(theta)
         y = r * np.sin(theta)
         res = np.vstack((x, y)).T
         return torch.tensor(res, dtype=torch.float32)
-
-    # def generate_spiral_data(n_points=1000, noise=0.05):
-    #     n = np.sqrt(np.random.rand(n_points, 1))  # Radius
-    #     theta = np.random.rand(n_points, 1) * 2 * np.pi  # Angle
-    #     x1 = n * np.cos(theta)
-    #     x2 = n * np.sin(theta)
-    #     x = np.concatenate((x1, x2), axis=1)
-    #
-    #     # Apply spiral transformation
-    #     r = np.linspace(0, 1, n_points)
-    #     t = np.linspace(0, 4 * np.pi, n_points)
-    #     x[:, 0] = r * np.cos(t)
-    #     x[:, 1] = r * np.sin(t)
-    #
-    #     # Add noise
-    #     x += noise * np.random.randn(n_points, 2)
-    #
-    #     # Normalize
-    #     x -= np.mean(x, axis=0)
-    #     x /= np.std(x, axis=0)
-    #
-    #     return torch.tensor(x, dtype=torch.float32)
 
     def mnist_data() -> DataLoader:
         # create a transform to apply to each datapoint
@@ -81,6 +80,10 @@ def get_data(config: Config):
         return generate_spiral_data()
     elif DATA == "mnist":
         return mnist_data()
+    elif DATA == "mixture":
+        return generate_mixture_of_gaussians()
+    elif DATA == "moons":
+        return generate_moons()
     raise ValueError(f"Invalid data type {DATA}")
 
 
