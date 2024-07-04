@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torchvision.transforms as transforms
-from sklearn.datasets import make_moons
+from sklearn.datasets import make_moons, make_circles
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
@@ -56,6 +56,13 @@ def get_data(config: Config):
         res = np.vstack((x, y)).T
         return torch.tensor(res, dtype=torch.float32)
 
+    def generate_circles(n_samples: int = 5_000, noise: float = 0.15) -> torch.Tensor:
+        theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
+        r = 5
+        x = r * np.cos(theta) + noise * np.random.randn(n_samples)
+        y = r * np.sin(theta) + noise * np.random.randn(n_samples)
+        res = np.vstack((x, y)).T
+        return torch.tensor(res, dtype=torch.float32)
     def mnist_data() -> DataLoader:
         # create a transform to apply to each datapoint
         transform = transforms.Compose([transforms.ToTensor()])
@@ -84,6 +91,8 @@ def get_data(config: Config):
         return generate_mixture_of_gaussians()
     elif DATA == "moons":
         return generate_moons()
+    elif DATA == "circles":
+        return generate_circles()
     raise ValueError(f"Invalid data type {DATA}")
 
 
