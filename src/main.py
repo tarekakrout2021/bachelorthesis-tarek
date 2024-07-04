@@ -17,6 +17,7 @@ def main():
     run_dir = get_run_dir(config)
     logger = init_logger(run_dir)
     logger.info(f"Run ID: {run_id}")
+    print(run_id)
 
     data = get_data(config)
     if config.training_data != "mnist":

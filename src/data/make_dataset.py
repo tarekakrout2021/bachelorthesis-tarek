@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torchvision.transforms as transforms
-from sklearn.datasets import make_moons, make_circles
+from sklearn.datasets import make_moons
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
@@ -48,7 +48,9 @@ def get_data(config: Config):
         data = np.dot(X, transformation_matrix)
         return torch.tensor(data, dtype=torch.float32)
 
-    def generate_spiral_data(n_samples: int = 10_000, noise: float = 0.5) -> torch.Tensor:
+    def generate_spiral_data(
+        n_samples: int = 10_000, noise: float = 0.5
+    ) -> torch.Tensor:
         theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
         r = 2 * theta + noise * np.random.randn(n_samples)
         x = r * np.cos(theta)
@@ -63,6 +65,7 @@ def get_data(config: Config):
         y = r * np.sin(theta) + noise * np.random.randn(n_samples)
         res = np.vstack((x, y)).T
         return torch.tensor(res, dtype=torch.float32)
+
     def mnist_data() -> DataLoader:
         # create a transform to apply to each datapoint
         transform = transforms.Compose([transforms.ToTensor()])

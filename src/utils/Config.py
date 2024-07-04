@@ -15,9 +15,11 @@ class Config:
     encoder_layers: List[int] = field(default_factory=lambda: [200, 200, 200])
     name: str = field(default="bitnet_synthetic")
     activation_layer: str = field(default="ReLU")
-    run_id: str = field(default="0")
+    reconstruction_loss: str = field(default="nll")
 
     # Training parameters
     batch_size: int = field(default=64)  # maybe 10 is better ?
     epochs: int = field(default=10)
     learning_rate: float = field(default=0.001)
+    run_id: str = field(default="0")
+    device: str = field(default="cpu")

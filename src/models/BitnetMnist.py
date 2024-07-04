@@ -3,20 +3,17 @@ import torch.nn as nn
 
 from src.models.Bitlinear158 import BitLinear158
 from src.models.VAE import VAE
+from src.utils.Config import Config
 
 
 class BitnetMnist(VAE):
-    def __init__(self, encoder_layers, decoder_layers, latent_dim, activation_layer):
+    def __init__(self, config: Config):
         super().__init__(
+            config=config,
             layer=BitLinear158,
-            activation_layer=activation_layer,
             input_dim=784,
-            latent_dim=latent_dim,
-            encoder_layers=encoder_layers,
-            decoder_layers=decoder_layers,
         )
-        self.activation_layer = activation_layer
-        self.latent_dim = latent_dim
+        # TODO: maybe this only works for the mse loss ?
         self.decoder.append(nn.Sigmoid())
 
     def sample(self, n_samples=100, device="cpu"):

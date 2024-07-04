@@ -1,59 +1,77 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
+from src.utils.Config import Config
 
+# TODO : add this to config
+# TODO : add reconstruction_loss to config
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class VAE(nn.Module):
-    def __init__(
-        self,
-        layer,
-        activation_layer,
-        encoder_layers=None,
-        decoder_layers=None,
-        input_dim=2,
-        latent_dim=2,
-    ):
+    def __init__(self, config: Config, layer, input_dim: int = 2):
         super().__init__()
-        if decoder_layers is None:
-            decoder_layers = [200, 200, 200]
-        if encoder_layers is None:
-            encoder_layers = [200, 200, 200]
+        if config.decoder_layers is None:
+            self.decoder_layers = [200, 200, 200]
+        else:
+            self.decoder_layers = config.decoder_layers
+
+        if config.encoder_layers is None:
+            self.encoder_layers = [200, 200, 200]
+        else:
+            self.encoder_layers = config.encoder_layers
 
         self.input_dim = input_dim
-        self.latent_dim = latent_dim
-
-        self.encoder_layers = encoder_layers
-        self.decoder_layers = decoder_layers
+        self.latent_dim = config.latent_dim
 
         # for stats
         self.n_0 = 0
         self.n_1 = 0
         self.n_minus_1 = 0
 
+        activation_layer = (
+            nn.ReLU()
+            if config.activation_layer == "ReLU"
+            else nn.Sigmoid()
+            if config.activation_layer == "Sigmoid"
+            else nn.Tanh()
+            if config.activation_layer == "tanh"
+            else nn.ReLU()
+        )
+
         # Encoder
-        layers = [layer(input_dim, encoder_layers[0]), activation_layer]
-        for i in range(1, len(encoder_layers)):
-            layers.append(layer(encoder_layers[i - 1], encoder_layers[i]))
+        layers = [layer(input_dim, self.encoder_layers[0]), activation_layer]
+        for i in range(1, len(self.encoder_layers)):
+            layers.append(layer(self.encoder_layers[i - 1], self.encoder_layers[i]))
             layers.append(activation_layer)
         self.encoder = nn.Sequential(*layers)
 
-        self.mean_layer = layer(encoder_layers[-1], latent_dim)  # For mu
-        self.log_var_layer = layer(encoder_layers[-1], latent_dim)  # For log variance
+        self.mean_layer = layer(self.encoder_layers[-1], self.latent_dim)  # For mu
+        self.log_var_layer = layer(
+            self.encoder_layers[-1], self.latent_dim
+        )  # For log variance
 
         # Decoder
-        layers = [layer(latent_dim, decoder_layers[0]), activation_layer]
-        for i in range(1, len(decoder_layers)):
-            layers.append(layer(decoder_layers[i - 1], decoder_layers[i]))
+        layers = [layer(self.latent_dim, self.decoder_layers[0]), activation_layer]
+        for i in range(1, len(self.decoder_layers)):
+            layers.append(layer(self.decoder_layers[i - 1], self.decoder_layers[i]))
             layers.append(activation_layer)
-        layers.append(layer(decoder_layers[-1], input_dim))
+
+        if config.reconstruction_loss == "mse":
+            layers.append(layer(self.decoder_layers[-1], input_dim))
+
         self.decoder = nn.Sequential(*layers)
 
-        self.to(DEVICE)
-        self.device = DEVICE
+        self.mean_reconstruction = layer(
+            self.decoder_layers[-1], input_dim
+        )  # For mu reconstructed
+        self.log_var_reconstruction = layer(
+            self.decoder_layers[-1], input_dim
+        )  # For log variance reconstructed
+
+        self.to(config.device)
+        self.device = config.device
 
         self.mode = "training"
 
@@ -68,12 +86,19 @@ class VAE(nn.Module):
         return mu + eps * std
 
     def decode(self, z):
-        return self.decoder(z)
+        h = self.decoder(z)
+        return self.mean_reconstruction(h), self.log_var_reconstruction(h)
+
+    # def forward(self, x):
+    #     mu, logvar = self.encode(x)
+    #     z = self.parameterize(mu, logvar)
+    #     return self.decode(z), mu, logvar
 
     def forward(self, x):
-        mu, logvar = self.encode(x)
+        mu, logvar = self.encode(x.view(-1, 2))
         z = self.parameterize(mu, logvar)
-        return self.decode(z), mu, logvar
+        recon_mu, recon_logvar = self.decode(z)
+        return recon_mu, recon_logvar, mu, logvar
 
     def encode_latent(self, x):
         with torch.no_grad():
@@ -81,10 +106,23 @@ class VAE(nn.Module):
             return mu, logvar
 
     @staticmethod
-    def loss_function(recon_x, x, mu, logvar):
-        MSE = F.mse_loss(recon_x, x, reduction="sum")
-        KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return MSE + KL, MSE, KL
+    # def loss_function(recon_x, x, mu, logvar):
+    # MSE = F.mse_loss(recon_x, x, reduction="sum")
+    # KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    # return MSE + KL, MSE, KL
+
+    def loss_function(recon_mu, recon_logvar, x, mu, logvar):
+        # Negative log-likelihood for Gaussian
+        recon_var = torch.exp(recon_logvar)
+        nll_loss = 0.5 * torch.sum(
+            recon_logvar
+            + (x.view(-1, 2) - recon_mu) ** 2 / recon_var
+            + torch.log(torch.tensor(2 * torch.pi))
+        )
+
+        # Kullback-Leibler divergence
+        kld_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        return nll_loss + kld_loss
 
     def change_to_inference(self):
         """
@@ -135,5 +173,8 @@ class VAE(nn.Module):
             # Sample from a standard normal distribution
             z = torch.randn(n_samples, self.latent_dim).to(device)
             # Decode the sample
-            sampled_data = self.decode(z)
+            recon_mean, recon_log_var = self.decode(z)
+            sampled_data = recon_mean + torch.exp(
+                0.5 * recon_log_var
+            ) * torch.randn_like(recon_mean)
         return sampled_data

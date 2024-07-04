@@ -36,44 +36,11 @@ def get_model(config):
     model_name = config.name
 
     if model_name == "baseline_synthetic":
-        model = BaselineSynthetic(
-            config.encoder_layers,
-            config.decoder_layers,
-            config.latent_dim,
-            activation_layer=nn.ReLU()
-            if config.activation_layer == "ReLU"
-            else nn.Sigmoid()
-            if config.activation_layer == "Sigmoid"
-            else nn.Tanh()
-            if config.activation_layer == "tanh"
-            else nn.ReLU(),
-        )
+        model = BaselineSynthetic(config)
     elif model_name == "bitnet_synthetic":
-        model = BitnetSynthetic(
-            config.encoder_layers,
-            config.decoder_layers,
-            config.latent_dim,
-            activation_layer=nn.ReLU()
-            if config.activation_layer == "ReLU"
-            else nn.Sigmoid()
-            if config.activation_layer == "Sigmoid"
-            else nn.Tanh()
-            if config.activation_layer == "tanh"
-            else nn.ReLU(),
-        )
+        model = BitnetSynthetic(config)
     elif model_name == "bitnet_mnist":
-        model = BitnetMnist(
-            config.encoder_layers,
-            config.decoder_layers,
-            config.latent_dim,
-            activation_layer=nn.ReLU()
-            if config.activation_layer == "ReLU"
-            else nn.Sigmoid()
-            if config.activation_layer == "Sigmoid"
-            else nn.Tanh()
-            if config.activation_layer == "tanh"
-            else nn.ReLU(),
-        )
+        model = BitnetMnist(config)
     else:
         raise ValueError(f"Model {model_name} is not supported")
 
@@ -220,6 +187,10 @@ def get_args():
 
     parser.add_argument("--id", help="id of the run.")
 
+    parser.add_argument(
+        "--recon_loss", help="reconstruction loss, is either nll or mse."
+    )
+
     args = parser.parse_args()
     return args
 
@@ -250,5 +221,7 @@ def get_config(run_id):
         config.run_id = args.id
     if args.activation_layer:
         config.activation_layer = args.activation_layer
+    if args.recon_loss:
+        config.reconstruction_loss = args.recon_loss
 
     return config

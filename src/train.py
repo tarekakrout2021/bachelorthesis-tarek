@@ -38,11 +38,6 @@ def train(model, optimizer, data_loader, config, logger):
 
         # Plot loss
         plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir)
-        # Save the model's state_dict
-        # torch.save(
-        #     model.state_dict(), CHECKPOINT_DIR / "bitnet_vae_mnist_more_layers_4_hidden.pth"
-        # )
-        # logger.info("Model saved.")
 
     else:
         mse_array, kl_array, training_array = np.array([]), np.array([]), np.array([])
@@ -52,13 +47,13 @@ def train(model, optimizer, data_loader, config, logger):
             for batch_idx, data in enumerate(data_loader):
                 optimizer.zero_grad()
                 data.to(model.device)
-                recon_batch, mu, logvar = model(data)
+                recon_mu, recon_logvar, mu, logvar = model(data)
 
-                loss, mse, kl = model.loss_function(recon_batch, data, mu, logvar)
+                loss = model.loss_function(recon_mu, recon_logvar, data, mu, logvar)
 
                 train_loss += loss.item()
-                mse_loss += mse.item()
-                kl_loss += kl.item()
+                # mse_loss += mse.item()
+                # kl_loss += kl.item()
 
                 loss.backward()
                 optimizer.step()
