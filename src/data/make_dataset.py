@@ -59,11 +59,15 @@ def get_data(config: Config):
         return torch.tensor(res, dtype=torch.float32)
 
     def generate_circles(n_samples: int = 5_000, noise: float = 0.15) -> torch.Tensor:
-        theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
-        r = 5
-        x = r * np.cos(theta) + noise * np.random.randn(n_samples)
-        y = r * np.sin(theta) + noise * np.random.randn(n_samples)
-        res = np.vstack((x, y)).T
+        def circle(r, n):
+            t = np.sqrt(np.random.rand(n)) * 2 * np.pi
+            x = r * np.cos(t)
+            y = r * np.sin(t)
+            return np.vstack((x, y)).T + noise * np.random.randn(n, 2)
+
+        c1 = circle(4, n_samples//2)
+        c2 = circle(10, n_samples//2)
+        res = np.vstack((c1, c2))
         return torch.tensor(res, dtype=torch.float32)
 
     def mnist_data() -> DataLoader:

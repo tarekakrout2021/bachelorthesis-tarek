@@ -6,7 +6,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch import nn
 
 from src.models.BaselineSynthetic import BaselineSynthetic
 from src.models.BitnetMnist import BitnetMnist

@@ -40,28 +40,28 @@ def train(model, optimizer, data_loader, config, logger):
         plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir)
 
     else:
-        mse_array, kl_array, training_array = np.array([]), np.array([]), np.array([])
+        recon_array, kl_array, training_array = np.array([]), np.array([]), np.array([])
         for epoch in range(n_epochs):
             model.train()
-            train_loss = mse_loss = kl_loss = 0
+            train_loss = recon_loss = kl_loss = 0
             for batch_idx, data in enumerate(data_loader):
                 optimizer.zero_grad()
                 data.to(model.device)
                 recon_mu, recon_logvar, mu, logvar = model(data)
 
-                loss = model.loss_function(recon_mu, recon_logvar, data, mu, logvar)
+                loss, recon, kl = model.loss_function(recon_mu, recon_logvar, data, mu, logvar)
 
                 train_loss += loss.item()
-                # mse_loss += mse.item()
-                # kl_loss += kl.item()
+                recon_loss += recon.item()
+                kl_loss += kl.item()
 
                 loss.backward()
                 optimizer.step()
 
-            mse_array = np.append(mse_array, mse_loss)
+            recon_array = np.append(recon_array, recon_loss)
             kl_array = np.append(kl_array, kl_loss)
             training_array = np.append(training_array, train_loss)
             logger.info(f"Train Epoch: {epoch}  Loss: {train_loss :.6f}")
 
         # Plot loss
-        plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir)
+        plot_loss(n_epochs, recon_array, kl_array, training_array, plot_dir)

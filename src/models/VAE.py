@@ -4,9 +4,9 @@ import torch.nn as nn
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
 from src.utils.Config import Config
 
-# TODO : add this to config
-# TODO : add reconstruction_loss to config
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+# TODO : use strategy design pattern to implement different loss function strategies, forward strategies, decode, sample
+#  strategies
 
 
 class VAE(nn.Module):
@@ -21,6 +21,11 @@ class VAE(nn.Module):
             self.encoder_layers = [200, 200, 200]
         else:
             self.encoder_layers = config.encoder_layers
+
+        if config.reconstruction_loss == "mse":
+            self.reconstruction_loss = config.reconstruction_loss
+        else:
+            self.reconstruction_loss = "nll"
 
         self.input_dim = input_dim
         self.latent_dim = config.latent_dim
@@ -58,7 +63,7 @@ class VAE(nn.Module):
             layers.append(layer(self.decoder_layers[i - 1], self.decoder_layers[i]))
             layers.append(activation_layer)
 
-        if config.reconstruction_loss == "mse":
+        if self.reconstruction_loss == "mse":
             layers.append(layer(self.decoder_layers[-1], input_dim))
 
         self.decoder = nn.Sequential(*layers)
@@ -114,15 +119,14 @@ class VAE(nn.Module):
     def loss_function(recon_mu, recon_logvar, x, mu, logvar):
         # Negative log-likelihood for Gaussian
         recon_var = torch.exp(recon_logvar)
-        nll_loss = 0.5 * torch.sum(
+        nll_loss = 0.5 * torch.sum( 
             recon_logvar
             + (x.view(-1, 2) - recon_mu) ** 2 / recon_var
             + torch.log(torch.tensor(2 * torch.pi))
         )
 
-        # Kullback-Leibler divergence
-        kld_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return nll_loss + kld_loss
+        KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        return nll_loss + KL, nll_loss, KL
 
     def change_to_inference(self):
         """
