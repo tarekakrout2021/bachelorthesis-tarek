@@ -1,12 +1,8 @@
-import torch
 import torch.nn as nn
 
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
+from src.models.StrategyClasses import *
 from src.utils.Config import Config
-
-
-# TODO : use strategy design pattern to implement different loss function strategies, forward strategies, decode, sample
-#  strategies
 
 
 class VAE(nn.Module):
@@ -23,9 +19,9 @@ class VAE(nn.Module):
             self.encoder_layers = config.encoder_layers
 
         if config.reconstruction_loss == "mse":
-            self.reconstruction_loss = config.reconstruction_loss
+            self.loss_strategy = MSELossStrategy()
         else:
-            self.reconstruction_loss = "nll"
+            self.loss_strategy = NLLLossStrategy()
 
         self.input_dim = input_dim
         self.latent_dim = config.latent_dim
@@ -63,7 +59,7 @@ class VAE(nn.Module):
             layers.append(layer(self.decoder_layers[i - 1], self.decoder_layers[i]))
             layers.append(activation_layer)
 
-        if self.reconstruction_loss == "mse":
+        if config.reconstruction_loss == "mse":
             layers.append(layer(self.decoder_layers[-1], input_dim))
 
         self.decoder = nn.Sequential(*layers)
@@ -84,7 +80,7 @@ class VAE(nn.Module):
         h = self.encoder(x)
         return self.mean_layer(h), self.log_var_layer(h)
 
-    def parameterize(self, mu, logvar):
+    def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar).to(self.device)
         eps = torch.randn_like(std).to(self.device)
         mu.to(self.device)
@@ -101,7 +97,7 @@ class VAE(nn.Module):
 
     def forward(self, x):
         mu, logvar = self.encode(x.view(-1, 2))
-        z = self.parameterize(mu, logvar)
+        z = self.reparameterize(mu, logvar)
         recon_mu, recon_logvar = self.decode(z)
         return recon_mu, recon_logvar, mu, logvar
 
@@ -110,23 +106,8 @@ class VAE(nn.Module):
             mu, logvar = self.encode(x)
             return mu, logvar
 
-    @staticmethod
-    # def loss_function(recon_x, x, mu, logvar):
-    # MSE = F.mse_loss(recon_x, x, reduction="sum")
-    # KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    # return MSE + KL, MSE, KL
-
-    def loss_function(recon_mu, recon_logvar, x, mu, logvar):
-        # Negative log-likelihood for Gaussian
-        recon_var = torch.exp(recon_logvar)
-        nll_loss = 0.5 * torch.sum( 
-            recon_logvar
-            + (x.view(-1, 2) - recon_mu) ** 2 / recon_var
-            + torch.log(torch.tensor(2 * torch.pi))
-        )
-
-        KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return nll_loss + KL, nll_loss, KL
+    def loss_function(self, *args, **kwargs):
+        return self.loss_strategy.compute_loss(*args, **kwargs)
 
     def change_to_inference(self):
         """

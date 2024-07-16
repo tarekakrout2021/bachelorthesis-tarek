@@ -69,7 +69,7 @@ def evaluate(model, data_loader, config, logger):
         latent_variables = []
         for data in data_loader:
             mu, logvar = model.encode_latent(data)
-            z = model.parameterize(mu, logvar)
+            z = model.reparameterize(mu, logvar)
             latent_variables.append(z)
         latent_variables = torch.cat(latent_variables, 0)
         plot_dir = PLOT_DIR / "train_q(z|x).png"
@@ -99,7 +99,7 @@ def evaluate(model, data_loader, config, logger):
         latent_variables = []
         for data in data_loader:
             mu, logvar = model.encode_latent(data)
-            z = model.parameterize(mu, logvar)
+            z = model.reparameterize(mu, logvar)
             latent_variables.append(z)
         latent_variables = torch.cat(latent_variables, 0)
         helpers.plot_data(
@@ -130,7 +130,7 @@ def evaluate(model, data_loader, config, logger):
         # reconstructed_data = []
         # for data in data_loader:
         #     mu, logvar = model.encode_latent(data)
-        #     z = model.parameterize(mu, logvar)
+        #     z = model.reparameterize(mu, logvar)
         #     reconstructions = model.decode(z)
         #     reconstructed_data.append(reconstructions.detach().cpu().numpy())
         # reconstructed_data = np.concatenate(reconstructed_data, 0)
