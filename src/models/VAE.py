@@ -1,7 +1,8 @@
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
-from src.models.StrategyClasses import *
 from src.utils.Config import Config
 
 
@@ -17,11 +18,6 @@ class VAE(nn.Module):
             self.encoder_layers = [200, 200, 200]
         else:
             self.encoder_layers = config.encoder_layers
-
-        if config.reconstruction_loss == "mse":
-            self.loss_strategy = MSELossStrategy()
-        else:
-            self.loss_strategy = NLLLossStrategy()
 
         self.input_dim = input_dim
         self.latent_dim = config.latent_dim
@@ -54,22 +50,13 @@ class VAE(nn.Module):
         )  # For log variance
 
         # Decoder
+        # Decoder
         layers = [layer(self.latent_dim, self.decoder_layers[0]), activation_layer]
         for i in range(1, len(self.decoder_layers)):
             layers.append(layer(self.decoder_layers[i - 1], self.decoder_layers[i]))
             layers.append(activation_layer)
-
-        if config.reconstruction_loss == "mse":
-            layers.append(layer(self.decoder_layers[-1], input_dim))
-
+        layers.append(layer(self.decoder_layers[-1], input_dim))
         self.decoder = nn.Sequential(*layers)
-
-        self.mean_reconstruction = layer(
-            self.decoder_layers[-1], input_dim
-        )  # For mu reconstructed
-        self.log_var_reconstruction = layer(
-            self.decoder_layers[-1], input_dim
-        )  # For log variance reconstructed
 
         self.to(config.device)
         self.device = config.device
@@ -86,28 +73,25 @@ class VAE(nn.Module):
         mu.to(self.device)
         return mu + eps * std
 
-    def decode(self, z):
-        h = self.decoder(z)
-        return self.mean_reconstruction(h), self.log_var_reconstruction(h)
 
-    # def forward(self, x):
-    #     mu, logvar = self.encode(x)
-    #     z = self.parameterize(mu, logvar)
-    #     return self.decode(z), mu, logvar
+    def decode(self, z):
+        return self.decoder(z)
 
     def forward(self, x):
-        mu, logvar = self.encode(x.view(-1, 2))
+        mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
-        recon_mu, recon_logvar = self.decode(z)
-        return recon_mu, recon_logvar, mu, logvar
+        return self.decode(z), mu, logvar
 
     def encode_latent(self, x):
         with torch.no_grad():
             mu, logvar = self.encode(x)
             return mu, logvar
 
-    def loss_function(self, *args, **kwargs):
-        return self.loss_strategy.compute_loss(*args, **kwargs)
+    @staticmethod
+    def loss_function(recon_x, x, mu, logvar):
+        MSE = F.mse_loss(recon_x, x, reduction="sum")
+        KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        return MSE + KL, MSE, KL
 
     def change_to_inference(self):
         """
@@ -158,8 +142,5 @@ class VAE(nn.Module):
             # Sample from a standard normal distribution
             z = torch.randn(n_samples, self.latent_dim).to(device)
             # Decode the sample
-            recon_mean, recon_log_var = self.decode(z)
-            sampled_data = recon_mean + torch.exp(
-                0.5 * recon_log_var
-            ) * torch.randn_like(recon_mean)
+            sampled_data = self.decode(z)
         return sampled_data

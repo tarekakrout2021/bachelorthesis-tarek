@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 
 from src.utils import helpers
@@ -125,34 +126,34 @@ def evaluate(model, data_loader, config, logger):
         )
 
         # Inference mode: reconstruct data and plot
-        # if "bitnet" in model_name:
-        #     assert model.mode == "inference"
-        # reconstructed_data = []
-        # for data in data_loader:
-        #     mu, logvar = model.encode_latent(data)
-        #     z = model.reparameterize(mu, logvar)
-        #     reconstructions = model.decode(z)
-        #     reconstructed_data.append(reconstructions.detach().cpu().numpy())
-        # reconstructed_data = np.concatenate(reconstructed_data, 0)
-        # helpers.plot_data(
-        #     reconstructed_data,
-        #     title="Inference: Reconstruction",
-        #     x="Dimension 1",
-        #     y="Dimension 2",
-        #     path=PLOT_DIR / "inference_reconstruction.png",
-        # )
+        if "bitnet" in model_name:
+            assert model.mode == "inference"
+        reconstructed_data = []
+        for data in data_loader:
+            mu, logvar = model.encode_latent(data)
+            z = model.reparameterize(mu, logvar)
+            reconstructions = model.decode(z)
+            reconstructed_data.append(reconstructions.detach().cpu().numpy())
+        reconstructed_data = np.concatenate(reconstructed_data, 0)
+        helpers.plot_data(
+            reconstructed_data,
+            title="Inference: Reconstruction",
+            x="Dimension 1",
+            y="Dimension 2",
+            path=PLOT_DIR / "inference_reconstruction.png",
+        )
 
         # Inference mode: stat for ternary weights
-        # if "bitnet" in model_name:
-        #     assert model.mode == "inference"
-        #     model.weight_stats()
-        #
-        #     logger.info(f"Stats: {model.n_0} zeros in ternary weights")
-        #     logger.info(f"Stats: {model.n_1} ones in ternary weights")
-        #     logger.info(f"Stats: {model.n_minus_1} minus ones in ternary weights")
-        #
-        #     helpers.plot_bar(
-        #         counts=[model.n_minus_1, model.n_0, model.n_1],
-        #         values=[-1, 0, 1],
-        #         path=PLOT_DIR / "ternary_weights.png",
-        #     )
+        if "bitnet" in model_name:
+            assert model.mode == "inference"
+            model.weight_stats()
+
+            logger.info(f"Stats: {model.n_0} zeros in ternary weights")
+            logger.info(f"Stats: {model.n_1} ones in ternary weights")
+            logger.info(f"Stats: {model.n_minus_1} minus ones in ternary weights")
+
+            helpers.plot_bar(
+                counts=[model.n_minus_1, model.n_0, model.n_1],
+                values=[-1, 0, 1],
+                path=PLOT_DIR / "ternary_weights.png",
+            )

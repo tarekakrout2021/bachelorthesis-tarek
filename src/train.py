@@ -8,7 +8,6 @@ def train(model, optimizer, data_loader, config, logger):
     model_name = config.name
     plot_dir = get_plot_dir(config)
 
-    # TODO: there is probably a better way to do this..
     if model_name == "bitnet_mnist":
         n_data = data_loader.dataset.data.shape[0]
 
@@ -32,36 +31,34 @@ def train(model, optimizer, data_loader, config, logger):
             mse_array = np.append(mse_array, mse_loss / n_data)
             kl_array = np.append(kl_array, kl_loss / n_data)
             training_array = np.append(training_array, train_loss / n_data)
-            logger.info(
-                f"Train Epoch: {epoch}  Average Loss: {train_loss / n_data:.6f}"
-            )
+            logger.info(f"Train Epoch: {epoch}  Average Loss: {train_loss / n_data:.6f}")
 
         # Plot loss
         plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir)
 
     else:
-        recon_array, kl_array, training_array = np.array([]), np.array([]), np.array([])
+        mse_array, kl_array, training_array = np.array([]), np.array([]), np.array([])
         for epoch in range(n_epochs):
             model.train()
-            train_loss = recon_loss = kl_loss = 0
+            train_loss = mse_loss = kl_loss = 0
             for batch_idx, data in enumerate(data_loader):
                 optimizer.zero_grad()
                 data.to(model.device)
-                recon_mu, recon_logvar, mu, logvar = model(data)
+                recon_batch, mu, logvar = model(data)
 
-                loss, recon, kl = model.loss_function(recon_mu, recon_logvar, data, mu, logvar)
+                loss, mse, kl = model.loss_function(recon_batch, data, mu, logvar)
 
                 train_loss += loss.item()
-                recon_loss += recon.item()
+                mse_loss += mse.item()
                 kl_loss += kl.item()
 
                 loss.backward()
                 optimizer.step()
 
-            recon_array = np.append(recon_array, recon_loss)
+            mse_array = np.append(mse_array, mse_loss)
             kl_array = np.append(kl_array, kl_loss)
             training_array = np.append(training_array, train_loss)
             logger.info(f"Train Epoch: {epoch}  Loss: {train_loss :.6f}")
 
         # Plot loss
-        plot_loss(n_epochs, recon_array, kl_array, training_array, plot_dir)
+        plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir)
