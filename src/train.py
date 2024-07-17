@@ -31,7 +31,9 @@ def train(model, optimizer, data_loader, config, logger):
             mse_array = np.append(mse_array, mse_loss / n_data)
             kl_array = np.append(kl_array, kl_loss / n_data)
             training_array = np.append(training_array, train_loss / n_data)
-            logger.info(f"Train Epoch: {epoch}  Average Loss: {train_loss / n_data:.6f}")
+            logger.info(
+                f"Train Epoch: {epoch}  Average Loss: {train_loss / n_data:.6f}"
+            )
 
         # Plot loss
         plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir)

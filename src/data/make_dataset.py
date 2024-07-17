@@ -65,8 +65,8 @@ def get_data(config: Config):
             y = r * np.sin(t)
             return np.vstack((x, y)).T + noise * np.random.randn(n, 2)
 
-        c1 = circle(4, n_samples//2)
-        c2 = circle(10, n_samples//2)
+        c1 = circle(4, n_samples // 2)
+        c2 = circle(10, n_samples // 2)
         res = np.vstack((c1, c2))
         return torch.tensor(res, dtype=torch.float32)
 

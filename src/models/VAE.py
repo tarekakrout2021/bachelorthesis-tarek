@@ -1,6 +1,9 @@
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from matplotlib import pyplot as plt
 
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
 from src.utils.Config import Config
@@ -62,6 +65,7 @@ class VAE(nn.Module):
         self.device = config.device
 
         self.mode = "training"
+        self.config = config
 
     def encode(self, x):
         h = self.encoder(x)
@@ -72,7 +76,6 @@ class VAE(nn.Module):
         eps = torch.randn_like(std).to(self.device)
         mu.to(self.device)
         return mu + eps * std
-
 
     def decode(self, z):
         return self.decoder(z)
@@ -98,10 +101,33 @@ class VAE(nn.Module):
         Replaces layers in network with inference layers and quantizes the weights.
         """
 
+        def plot_heatmap(weights, quantized_weights, name, config: Config):
+            plot_dir = Path(f"runs/{config.run_id}/plots/heatmaps")
+            if not plot_dir.exists():
+                plot_dir.mkdir(parents=True)
+
+            plt.subplot(1, 2, 2)
+            plt.figure(figsize=(12, 6))
+            plt.subplot(1, 2, 1)
+            plt.imshow(weights, cmap="viridis")
+            plt.colorbar()
+            plt.title(f"Non-Quantized Weights Layer {name}")
+
+            plt.subplot(1, 2, 2)
+            plt.imshow(quantized_weights, cmap="viridis")
+            plt.colorbar()
+            plt.title(f"Quantized Weights Layer {name}")
+
+            plt.savefig(plot_dir / f"layer_{name}.png")
+            plt.close()
+
         def replace_bitlinear_layers(module):
             for name, layer in module.named_children():
                 if isinstance(layer, BitLinear158):
                     layer.beta = 1 / layer.weight.abs().mean().clamp(min=1e-5)
+
+                    old_layer_weight = layer.weight.data.clone()
+
                     layer.weight = nn.Parameter(
                         (layer.weight * layer.beta).round().clamp(-1, 1)
                     )
@@ -111,6 +137,16 @@ class VAE(nn.Module):
                     new_layer.weight.data = layer.weight.data.clone()
                     new_layer.beta = layer.beta
                     setattr(module, name, new_layer)
+
+                    # print("Layer: ", name)
+                    # print(new_layer.weight.data - old_layer_weight)
+                    # Difference Plot
+                    plot_heatmap(
+                        new_layer.weight.data,
+                        old_layer_weight,
+                        f"{name}_{layer}",
+                        self.config,
+                    )
                 else:
                     replace_bitlinear_layers(layer)
 
