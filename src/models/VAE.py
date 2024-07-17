@@ -102,6 +102,10 @@ class VAE(nn.Module):
         """
 
         def plot_heatmap(weights, quantized_weights, name, config: Config):
+            """
+            Plots the original weights and the quantized weights as heatmaps.
+            """
+            # Create directory for heatmaps
             plot_dir = Path(f"runs/{config.run_id}/plots/heatmaps")
             if not plot_dir.exists():
                 plot_dir.mkdir(parents=True)
