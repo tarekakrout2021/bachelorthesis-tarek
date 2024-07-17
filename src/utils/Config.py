@@ -16,6 +16,7 @@ class Config:
     name: str = field(default="bitnet_synthetic")
     activation_layer: str = field(default="ReLU")
     reconstruction_loss: str = field(default="mse")
+    norm: str = field(default="RMSNorm")
 
     # Training parameters
     batch_size: int = field(default=64)  # maybe 10 is better ?

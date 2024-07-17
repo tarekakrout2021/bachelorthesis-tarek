@@ -50,6 +50,7 @@ def plot_bar(counts, values=[-1, 0, 1], path="weights.png"):
     """
     Plot the distribution of weights.
     """
+    plt.figure(figsize=(8, 6))
     plt.bar(values, counts, edgecolor="black")
     plt.title("Distribution of weights")
     plt.xlabel("Values")
@@ -190,6 +191,8 @@ def get_args():
         "--recon_loss", help="reconstruction loss, is either nll or mse."
     )
 
+    parser.add_argument("--norm", help="if it uses RMSNorm or not")
+
     args = parser.parse_args()
     return args
 
@@ -222,5 +225,7 @@ def get_config(run_id):
         config.activation_layer = args.activation_layer
     if args.recon_loss:
         config.reconstruction_loss = args.recon_loss
+    if args.norm:
+        config.norm = args.norm
 
     return config

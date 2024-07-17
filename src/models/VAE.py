@@ -1,3 +1,4 @@
+import textwrap
 from pathlib import Path
 
 import torch
@@ -6,6 +7,7 @@ import torch.nn.functional as F
 from matplotlib import pyplot as plt
 
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
+from src.models.RMSNorm import RMSNorm
 from src.utils.Config import Config
 
 
@@ -42,8 +44,12 @@ class VAE(nn.Module):
 
         # Encoder
         layers = [layer(input_dim, self.encoder_layers[0]), activation_layer]
+        if config.norm == "RMSNorm":
+            layers.append(RMSNorm(self.encoder_layers[0]))
         for i in range(1, len(self.encoder_layers)):
             layers.append(layer(self.encoder_layers[i - 1], self.encoder_layers[i]))
+            if config.norm == "RMSNorm":
+                layers.append(RMSNorm(self.encoder_layers[i]))
             layers.append(activation_layer)
         self.encoder = nn.Sequential(*layers)
 
@@ -53,10 +59,13 @@ class VAE(nn.Module):
         )  # For log variance
 
         # Decoder
-        # Decoder
         layers = [layer(self.latent_dim, self.decoder_layers[0]), activation_layer]
+        if config.norm == "RMSNorm":
+            layers.append(RMSNorm(self.decoder_layers[0]))
         for i in range(1, len(self.decoder_layers)):
             layers.append(layer(self.decoder_layers[i - 1], self.decoder_layers[i]))
+            if config.norm == "RMSNorm":
+                layers.append(RMSNorm(self.decoder_layers[i]))
             layers.append(activation_layer)
         layers.append(layer(self.decoder_layers[-1], input_dim))
         self.decoder = nn.Sequential(*layers)
@@ -115,12 +124,15 @@ class VAE(nn.Module):
             plt.subplot(1, 2, 1)
             plt.imshow(weights, cmap="viridis")
             plt.colorbar()
-            plt.title(f"Non-Quantized Weights Layer {name}")
+            name = "\n".join(
+                textwrap.wrap(name, width=40)
+            )  # Adjust the width as needed
+            plt.title(f"Non-Quantized Weights Layer \n {name}")
 
             plt.subplot(1, 2, 2)
             plt.imshow(quantized_weights, cmap="viridis")
             plt.colorbar()
-            plt.title(f"Quantized Weights Layer {name}")
+            plt.title(f"Quantized Weights Layer \n {name}")
 
             plt.savefig(plot_dir / f"layer_{name}.png")
             plt.close()
@@ -142,13 +154,11 @@ class VAE(nn.Module):
                     new_layer.beta = layer.beta
                     setattr(module, name, new_layer)
 
-                    # print("Layer: ", name)
-                    # print(new_layer.weight.data - old_layer_weight)
                     # Difference Plot
                     plot_heatmap(
                         new_layer.weight.data,
                         old_layer_weight,
-                        f"{name}_{layer}",
+                        f"{name}\n_{layer}",
                         self.config,
                     )
                 else:
@@ -173,14 +183,14 @@ class VAE(nn.Module):
 
         count(self)
 
-    def sample(self, n_samples=100, device="cpu"):
+    def sample(self, n_samples=100):
         """
         Sample from p(z) and decode.
         """
         self.eval()
         with torch.no_grad():
             # Sample from a standard normal distribution
-            z = torch.randn(n_samples, self.latent_dim).to(device)
+            z = torch.randn(n_samples, self.latent_dim).to("cpu")
             # Decode the sample
             sampled_data = self.decode(z)
         return sampled_data

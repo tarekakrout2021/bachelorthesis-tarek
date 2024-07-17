@@ -40,7 +40,7 @@ def evaluate(model, data_loader, config, logger):
         # Inference mode: sample from prior
         assert model.mode == "inference"
         n_samples = 300
-        generated_samples = model.sample(n_samples=n_samples, device=model.device)
+        generated_samples = model.sample(n_samples=n_samples)
         fig, axes = plt.subplots(nrows=10, ncols=10, figsize=(15, 15))
         axes = axes.flatten()
         for ax, img in zip(axes, generated_samples):
@@ -115,7 +115,7 @@ def evaluate(model, data_loader, config, logger):
         if "bitnet" in model_name:
             assert model.mode == "inference"
         n_samples = 1000
-        generated_data = model.sample(n_samples=n_samples, device="cpu")
+        generated_data = model.sample(n_samples=n_samples)
         generated_data = generated_data.cpu().numpy()
         helpers.plot_data(
             generated_data,
