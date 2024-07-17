@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import torch
 import torchvision.transforms as transforms
 from sklearn.datasets import make_moons
@@ -86,6 +87,22 @@ def get_data(config: Config):
 
         return train_loader
 
+    def dino_dataset(n=8000):
+        # taken from this repo : https://github.com/tanelp/tiny-diffusion/tree/master
+        df = pd.read_csv("/home/titi/Documents/TarekAkrout/bachelorthesis-tarek/src/data/static/dino.tsv", sep="\t")
+        df = df[df["dataset"] == "dino"]
+
+        rng = np.random.default_rng(42)
+        ix = rng.integers(0, len(df), n)
+        x = df["x"].iloc[ix].tolist()
+        x = np.array(x) + rng.normal(size=len(x)) * 0.15
+        y = df["y"].iloc[ix].tolist()
+        y = np.array(y) + rng.normal(size=len(x)) * 0.15
+        x = (x / 54 - 1) * 4
+        y = (y / 48 - 1) * 4
+        X = np.stack((x, y), axis=1)
+        return torch.tensor(torch.from_numpy(X.astype(np.float32)))
+
     if DATA == "normal":
         return generate_gaussian_data()
     elif DATA == "anisotropic":
@@ -100,6 +117,8 @@ def get_data(config: Config):
         return generate_moons()
     elif DATA == "circles":
         return generate_circles()
+    elif DATA == "dino":
+        return dino_dataset()
     raise ValueError(f"Invalid data type {DATA}")
 
 
