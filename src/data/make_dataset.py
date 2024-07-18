@@ -59,7 +59,7 @@ def get_data(config: Config):
         res = np.vstack((x, y)).T
         return torch.tensor(res, dtype=torch.float32)
 
-    def generate_circles(n_samples: int = 5_000, noise: float = 0.15) -> torch.Tensor:
+    def generate_circles(n_samples: int = 10_000, noise: float = 0.15) -> torch.Tensor:
         def circle(r, n):
             t = np.sqrt(np.random.rand(n)) * 2 * np.pi
             x = r * np.cos(t)
@@ -89,7 +89,7 @@ def get_data(config: Config):
 
     def dino_dataset(n=8000):
         # taken from this repo : https://github.com/tanelp/tiny-diffusion/tree/master
-        df = pd.read_csv("/home/titi/Documents/TarekAkrout/bachelorthesis-tarek/src/data/static/dino.tsv", sep="\t")
+        df = pd.read_csv("data/static/dino.tsv", sep="\t")
         df = df[df["dataset"] == "dino"]
 
         rng = np.random.default_rng(42)

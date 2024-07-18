@@ -191,7 +191,9 @@ def get_args():
         "--recon_loss", help="reconstruction loss, is either nll or mse."
     )
 
-    parser.add_argument("--norm", help="if it uses RMSNorm or not")
+    parser.add_argument("--norm", help="if it uses RMSNorm or not.")
+
+    parser.add_argument("--device", help="cuda or cpu.")
 
     args = parser.parse_args()
     return args
@@ -227,5 +229,7 @@ def get_config(run_id):
         config.reconstruction_loss = args.recon_loss
     if args.norm:
         config.norm = args.norm
+    if args.device:
+        config.device = args.device
 
     return config

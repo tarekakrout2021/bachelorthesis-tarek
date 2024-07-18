@@ -16,15 +16,13 @@ class BitnetMnist(VAE):
         # TODO: maybe this only works for the mse loss ?
         self.decoder.append(nn.Sigmoid())
 
-    def sample(self, n_samples=100, device="cpu"):
+    def sample(self, n_samples=100):
         """
         Sample from p(z) and decode.
         """
         with torch.no_grad():
-            z = torch.randn(n_samples, self.latent_dim).to(
-                device
-            )  # Sample from N(0, I)
-            self.to(device)
+            z = torch.randn(n_samples, self.latent_dim).to("cpu")  # Sample from N(0, I)
+            self.to("cpu")
             sampled_data = self.decode(z).cpu()
 
         sampled_data = sampled_data.view(n_samples, 28, 28)
