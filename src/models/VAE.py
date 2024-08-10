@@ -1,89 +1,119 @@
+import textwrap
+from pathlib import Path
+from typing import List, Tuple, Type
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from matplotlib import pyplot as plt
 
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+from src.models.RMSNorm import RMSNorm
+from src.utils.Config import Config
 
 
 class VAE(nn.Module):
-    def __init__(
-        self,
-        layer,
-        activation_layer,
-        encoder_layers=None,
-        decoder_layers=None,
-        input_dim=2,
-        latent_dim=2,
-    ):
+    def __init__(self, config: Config, layer: Type[nn.Linear] | Type[BitLinear158], input_dim: int = 2):
         super().__init__()
-        if decoder_layers is None:
-            decoder_layers = [200, 200, 200]
-        if encoder_layers is None:
-            encoder_layers = [200, 200, 200]
+        self.decoder_layers: List[int] = [200, 200, 200]
+        self.encoder_layers: List[int] = [200, 200, 200]
+        if config.decoder_layers is not None:
+            self.decoder_layers = config.decoder_layers
 
-        self.input_dim = input_dim
-        self.latent_dim = latent_dim
+        if config.encoder_layers is not None:
+            self.encoder_layers = config.encoder_layers
 
-        self.encoder_layers = encoder_layers
-        self.decoder_layers = decoder_layers
+        self.input_dim: int = input_dim
+        self.latent_dim: int = config.latent_dim
 
         # for stats
-        self.n_0 = 0
-        self.n_1 = 0
-        self.n_minus_1 = 0
+        self.n_0: int = 0
+        self.n_1: int = 0
+        self.n_minus_1: int = 0
+
+        activation_layer: nn.Module = (
+            nn.ReLU()
+            if config.activation_layer == "ReLU"
+            else nn.Sigmoid()
+            if config.activation_layer == "Sigmoid"
+            else nn.Tanh()
+            if config.activation_layer == "tanh"
+            else nn.ReLU()
+        )
 
         # Encoder
-        layers = [layer(input_dim, encoder_layers[0]), activation_layer]
-        for i in range(1, len(encoder_layers)):
-            layers.append(layer(encoder_layers[i - 1], encoder_layers[i]))
+        layers: List[nn.Module] = [
+            layer(input_dim, self.encoder_layers[0]),
+            activation_layer,
+        ]
+        if config.norm == "RMSNorm":
+            layers.append(RMSNorm(self.encoder_layers[0]))
+        for i in range(1, len(self.encoder_layers)):
+            layers.append(layer(self.encoder_layers[i - 1], self.encoder_layers[i]))
+            if config.norm == "RMSNorm":
+                layers.append(RMSNorm(self.encoder_layers[i]))
             layers.append(activation_layer)
-        self.encoder = nn.Sequential(*layers)
+        self.encoder: nn.Sequential = nn.Sequential(*layers)
 
-        self.mean_layer = layer(encoder_layers[-1], latent_dim)  # For mu
-        self.log_var_layer = layer(encoder_layers[-1], latent_dim)  # For log variance
+        self.mean_layer: nn.Module = layer(
+            self.encoder_layers[-1], self.latent_dim
+        )  # For mu
+        self.log_var_layer: nn.Module = layer(
+            self.encoder_layers[-1], self.latent_dim
+        )  # For log variance
 
         # Decoder
-        layers = [layer(latent_dim, decoder_layers[0]), activation_layer]
-        for i in range(1, len(decoder_layers)):
-            layers.append(layer(decoder_layers[i - 1], decoder_layers[i]))
+        layers = [
+            layer(self.latent_dim, self.decoder_layers[0]),
+            activation_layer,
+        ]
+        if config.norm == "RMSNorm":
+            layers.append(RMSNorm(self.decoder_layers[0]))
+        for i in range(1, len(self.decoder_layers)):
+            layers.append(layer(self.decoder_layers[i - 1], self.decoder_layers[i]))
+            if config.norm == "RMSNorm":
+                layers.append(RMSNorm(self.decoder_layers[i]))
             layers.append(activation_layer)
-        layers.append(layer(decoder_layers[-1], input_dim))
-        self.decoder = nn.Sequential(*layers)
+        layers.append(layer(self.decoder_layers[-1], input_dim))
+        self.decoder: nn.Sequential = nn.Sequential(*layers)
 
-        self.to(DEVICE)
-        self.device = DEVICE
+        self.to(config.device)
+        self.device: torch.device = torch.device(config.device)
 
-        self.mode = "training"
+        self.mode: str = "training"
+        self.config: Config = config
 
-    def encode(self, x):
-        h = self.encoder(x)
+    def encode(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        h: torch.Tensor = self.encoder(x)
         return self.mean_layer(h), self.log_var_layer(h)
 
-    def parameterize(self, mu, logvar):
-        std = torch.exp(0.5 * logvar).to(self.device)
-        eps = torch.randn_like(std).to(self.device)
+    def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
+        std: torch.Tensor = torch.exp(0.5 * logvar).to(self.device)
+        eps: torch.Tensor = torch.randn_like(std).to(self.device)
         mu.to(self.device)
         return mu + eps * std
 
-    def decode(self, z):
+    def decode(self, z: torch.Tensor) -> torch.Tensor:
         return self.decoder(z)
 
-    def forward(self, x):
+    def forward(
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu, logvar = self.encode(x)
-        z = self.parameterize(mu, logvar)
+        z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
 
-    def encode_latent(self, x):
+    def encode_latent(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
             mu, logvar = self.encode(x)
             return mu, logvar
 
     @staticmethod
-    def loss_function(recon_x, x, mu, logvar):
-        MSE = F.mse_loss(recon_x, x, reduction="sum")
-        KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    def loss_function(
+        recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        MSE: torch.Tensor = F.mse_loss(recon_x, x, reduction="sum")
+        KL: torch.Tensor = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return MSE + KL, MSE, KL
 
     def change_to_inference(self):
@@ -91,10 +121,40 @@ class VAE(nn.Module):
         Replaces layers in network with inference layers and quantizes the weights.
         """
 
+        def plot_heatmap(weights, quantized_weights, name, config: Config):
+            """
+            Plots the original weights and the quantized weights as heatmaps.
+            """
+            # Create directory for heatmaps
+            plot_dir = Path(f"runs/{config.run_id}/plots/heatmaps")
+            if not plot_dir.exists():
+                plot_dir.mkdir(parents=True)
+
+            plt.subplot(1, 2, 2)
+            plt.figure(figsize=(12, 6))
+            plt.subplot(1, 2, 1)
+            plt.imshow(weights, cmap="viridis")
+            plt.colorbar()
+            name = "\n".join(
+                textwrap.wrap(name, width=40)
+            )  # Adjust the width as needed
+            plt.title(f"Non-Quantized Weights Layer \n {name}")
+
+            plt.subplot(1, 2, 2)
+            plt.imshow(quantized_weights, cmap="viridis")
+            plt.colorbar()
+            plt.title(f"Quantized Weights Layer \n {name}")
+
+            plt.savefig(plot_dir / f"layer_{name}.png")
+            plt.close()
+
         def replace_bitlinear_layers(module):
             for name, layer in module.named_children():
                 if isinstance(layer, BitLinear158):
                     layer.beta = 1 / layer.weight.abs().mean().clamp(min=1e-5)
+
+                    old_layer_weight = layer.weight.data.clone()
+
                     layer.weight = nn.Parameter(
                         (layer.weight * layer.beta).round().clamp(-1, 1)
                     )
@@ -104,6 +164,14 @@ class VAE(nn.Module):
                     new_layer.weight.data = layer.weight.data.clone()
                     new_layer.beta = layer.beta
                     setattr(module, name, new_layer)
+
+                    # Difference Plot
+                    plot_heatmap(
+                        new_layer.weight.data,
+                        old_layer_weight,
+                        f"{name}\n_{layer}",
+                        self.config,
+                    )
                 else:
                     replace_bitlinear_layers(layer)
 
@@ -126,14 +194,14 @@ class VAE(nn.Module):
 
         count(self)
 
-    def sample(self, n_samples=100, device="cpu"):
+    def sample(self, n_samples=100):
         """
         Sample from p(z) and decode.
         """
         self.eval()
         with torch.no_grad():
             # Sample from a standard normal distribution
-            z = torch.randn(n_samples, self.latent_dim).to(device)
+            z = torch.randn(n_samples, self.latent_dim).to("cpu")
             # Decode the sample
             sampled_data = self.decode(z)
         return sampled_data

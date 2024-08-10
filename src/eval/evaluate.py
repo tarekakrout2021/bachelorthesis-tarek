@@ -5,13 +5,13 @@ import torch
 from src.utils import helpers
 
 
-def evaluate(model, data_loader, config):
+def evaluate(model, data_loader, config, logger):
     model_name = config.name
     PLOT_DIR = helpers.get_plot_dir(config)
 
     if model_name == "bitnet_mnist":
         model.change_to_inference()
-        print(model)
+        logger.info(model)
 
         # assert model.mode == "inference"
         # helpers.plot_latent_space(model, config)
@@ -39,8 +39,8 @@ def evaluate(model, data_loader, config):
 
         # Inference mode: sample from prior
         assert model.mode == "inference"
-        n_samples = 100
-        generated_samples = model.sample(n_samples=n_samples, device=model.device)
+        n_samples = 300
+        generated_samples = model.sample(n_samples=n_samples)
         fig, axes = plt.subplots(nrows=10, ncols=10, figsize=(15, 15))
         axes = axes.flatten()
         for ax, img in zip(axes, generated_samples):
@@ -54,9 +54,9 @@ def evaluate(model, data_loader, config):
 
         model.weight_stats()
 
-        print(f"Stats: {model.n_0} zeros in ternary weights")
-        print(f"Stats: {model.n_1} ones in ternary weights")
-        print(f"Stats: {model.n_minus_1} minus ones in ternary weights")
+        logger.info(f"Stats: {model.n_0} zeros in ternary weights")
+        logger.info(f"Stats: {model.n_1} ones in ternary weights")
+        logger.info(f"Stats: {model.n_minus_1} minus ones in ternary weights")
 
         helpers.plot_bar(
             [model.n_minus_1, model.n_0, model.n_1],
@@ -70,7 +70,7 @@ def evaluate(model, data_loader, config):
         latent_variables = []
         for data in data_loader:
             mu, logvar = model.encode_latent(data)
-            z = model.parameterize(mu, logvar)
+            z = model.reparameterize(mu, logvar)
             latent_variables.append(z)
         latent_variables = torch.cat(latent_variables, 0)
         plot_dir = PLOT_DIR / "train_q(z|x).png"
@@ -81,17 +81,18 @@ def evaluate(model, data_loader, config):
             y="Latent Dimension 2",
             path=plot_dir,
         )
-        print(f"plotted at {plot_dir.absolute().resolve()}")
 
         if "bitnet" in model_name:
             model.change_to_inference()
 
         # Sanity checks
-        print(model)  # Check whether all BitLinear layers are set to inference mode
+        logger.info(
+            model
+        )  # Check whether all BitLinear layers are set to inference mode
         # Check whether weights are ternary
         # for name, param in list(model.named_parameters())[:2]:
         #     if param.requires_grad:
-        #         print(name, param.data)
+        #         logger.info(name, param.data)
 
         # Inference mode: plot q(z|x) in inference mode
         if "bitnet" in model_name:
@@ -99,7 +100,7 @@ def evaluate(model, data_loader, config):
         latent_variables = []
         for data in data_loader:
             mu, logvar = model.encode_latent(data)
-            z = model.parameterize(mu, logvar)
+            z = model.reparameterize(mu, logvar)
             latent_variables.append(z)
         latent_variables = torch.cat(latent_variables, 0)
         helpers.plot_data(
@@ -114,7 +115,7 @@ def evaluate(model, data_loader, config):
         if "bitnet" in model_name:
             assert model.mode == "inference"
         n_samples = 1000
-        generated_data = model.sample(n_samples=n_samples, device="cpu")
+        generated_data = model.sample(n_samples=n_samples)
         generated_data = generated_data.cpu().numpy()
         helpers.plot_data(
             generated_data,
@@ -130,7 +131,7 @@ def evaluate(model, data_loader, config):
         reconstructed_data = []
         for data in data_loader:
             mu, logvar = model.encode_latent(data)
-            z = model.parameterize(mu, logvar)
+            z = model.reparameterize(mu, logvar)
             reconstructions = model.decode(z)
             reconstructed_data.append(reconstructions.detach().cpu().numpy())
         reconstructed_data = np.concatenate(reconstructed_data, 0)
@@ -147,9 +148,9 @@ def evaluate(model, data_loader, config):
             assert model.mode == "inference"
             model.weight_stats()
 
-            # print(f"Stats: {model.n_0} zeros in ternary weights")
-            # print(f"Stats: {model.n_1} ones in ternary weights")
-            # print(f"Stats: {model.n_minus_1} minus ones in ternary weights")
+            logger.info(f"Stats: {model.n_0} zeros in ternary weights")
+            logger.info(f"Stats: {model.n_1} ones in ternary weights")
+            logger.info(f"Stats: {model.n_minus_1} minus ones in ternary weights")
 
             helpers.plot_bar(
                 counts=[model.n_minus_1, model.n_0, model.n_1],

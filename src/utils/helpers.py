@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from src.models.Baseline_synthetic import Baseline_synthetic
-from src.models.Bitnet_mnist import Bitnet_mnist
-from src.models.Bitnet_synthetic import Bitnet_synthetic
+from src.models.BaselineSynthetic import BaselineSynthetic
+from src.models.BitnetMnist import BitnetMnist
+from src.models.BitnetSynthetic import BitnetSynthetic
 from src.utils.Config import Config
 
 
@@ -35,23 +35,11 @@ def get_model(config):
     model_name = config.name
 
     if model_name == "baseline_synthetic":
-        model = Baseline_synthetic(
-            config.encoder_layers,
-            config.decoder_layers,
-            config.latent_dim,
-        )
+        model = BaselineSynthetic(config)
     elif model_name == "bitnet_synthetic":
-        model = Bitnet_synthetic(
-            config.encoder_layers,
-            config.decoder_layers,
-            config.latent_dim,
-        )
+        model = BitnetSynthetic(config)
     elif model_name == "bitnet_mnist":
-        model = Bitnet_mnist(
-            config.encoder_layers,
-            config.decoder_layers,
-            config.latent_dim,
-        )
+        model = BitnetMnist(config)
     else:
         raise ValueError(f"Model {model_name} is not supported")
 
@@ -62,6 +50,7 @@ def plot_bar(counts, values=[-1, 0, 1], path="weights.png"):
     """
     Plot the distribution of weights.
     """
+    plt.figure(figsize=(8, 6))
     plt.bar(values, counts, edgecolor="black")
     plt.title("Distribution of weights")
     plt.xlabel("Values")
@@ -147,17 +136,22 @@ def generate_id():
     return str(uuid.uuid4())
 
 
-def log_model_info(run_dir, config):
+def init_logger(run_dir):
     logging.basicConfig(
         filename=run_dir / "test.log",
         filemode="a",
         format="%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
         datefmt="%H:%M:%S",
-        level=logging.DEBUG,
+        level=logging.INFO,
     )
 
-    logging.info("Model configuration: ")
     logger = logging.getLogger("logger")
+
+    return logger
+
+
+def log_model_info(logger, config):
+    logging.info("Model configuration: ")
     logger.info(config)
 
 
@@ -171,6 +165,9 @@ def get_args():
     parser.add_argument("--epochs", type=int, help="Number of epochs.")
     parser.add_argument("--learning_rate", type=float, help="Learning rate.")
     parser.add_argument("--latent_dim", type=int, help="Latent dimension.")
+    parser.add_argument(
+        "--activation_layer", help="activation layer can be ReLU, Sigmoid or tanh."
+    )
     parser.add_argument(
         "--training_data",
         help='can be either "normal" or "anisotropic" or "spiral" or "mnist".',
@@ -187,6 +184,16 @@ def get_args():
         nargs="+",
         help="array describing the decoder layer.",
     )
+
+    parser.add_argument("--id", help="id of the run.")
+
+    parser.add_argument(
+        "--recon_loss", help="reconstruction loss, is either nll or mse."
+    )
+
+    parser.add_argument("--norm", help="if it uses RMSNorm or not.")
+
+    parser.add_argument("--device", help="cuda or cpu.")
 
     args = parser.parse_args()
     return args
@@ -213,5 +220,16 @@ def get_config(run_id):
         config.encoder_layers = args.encoder_layers
     if args.decoder_layers:
         config.decoder_layers = args.decoder_layers
+    # if there is a run_id in the arguments, use it.
+    if args.id:
+        config.run_id = args.id
+    if args.activation_layer:
+        config.activation_layer = args.activation_layer
+    if args.recon_loss:
+        config.reconstruction_loss = args.recon_loss
+    if args.norm:
+        config.norm = args.norm
+    if args.device:
+        config.device = args.device
 
     return config

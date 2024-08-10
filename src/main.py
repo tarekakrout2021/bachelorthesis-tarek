@@ -11,9 +11,13 @@ def main():
     torch.manual_seed(0)
 
     run_id = generate_id()
-    print(f"Run ID: {run_id}")
 
     config = get_config(run_id)
+
+    run_dir = get_run_dir(config)
+    logger = init_logger(run_dir)
+    logger.info(f"Run ID: {run_id}")
+    print(run_id)
 
     data = get_data(config)
     if config.training_data != "mnist":
@@ -27,16 +31,14 @@ def main():
     )
     # TODO  there is probably a better way to do this
     if config.training_data == "mnist":
-        train(model, optimizer, data, config)
-        evaluate(model, data, config)
+        train(model, optimizer, data, config, logger)
+        evaluate(model, data, config, logger)
     else:
-        train(model, optimizer, data_loader, config)
-        evaluate(model, data_loader, config)
+        train(model, optimizer, data_loader, config, logger)
+        evaluate(model, data_loader, config, logger)
 
-    run_dir = get_run_dir(config)
     torch.save(model.state_dict(), run_dir / "model.pth")
-    log_model_info(run_dir, config)
-    # shutil.copy("./model_config.yaml", run_dir / "config.yaml")
+    log_model_info(logger, config)
 
 
 if __name__ == "__main__":
