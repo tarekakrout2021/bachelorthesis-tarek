@@ -1,6 +1,6 @@
 import textwrap
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Type
 
 import torch
 import torch.nn as nn
@@ -13,17 +13,15 @@ from src.utils.Config import Config
 
 
 class VAE(nn.Module):
-    def __init__(self, config: Config, layer: nn.Module, input_dim: int = 2):
+    def __init__(self, config: Config, layer: Type[nn.Linear] | Type[BitLinear158], input_dim: int = 2):
         super().__init__()
-        if config.decoder_layers is None:
-            self.decoder_layers: List[int] = [200, 200, 200]
-        else:
-            self.decoder_layers: List[int] = config.decoder_layers
+        self.decoder_layers: List[int] = [200, 200, 200]
+        self.encoder_layers: List[int] = [200, 200, 200]
+        if config.decoder_layers is not None:
+            self.decoder_layers = config.decoder_layers
 
-        if config.encoder_layers is None:
-            self.encoder_layers: List[int] = [200, 200, 200]
-        else:
-            self.encoder_layers: List[int] = config.encoder_layers
+        if config.encoder_layers is not None:
+            self.encoder_layers = config.encoder_layers
 
         self.input_dim: int = input_dim
         self.latent_dim: int = config.latent_dim
@@ -65,7 +63,7 @@ class VAE(nn.Module):
         )  # For log variance
 
         # Decoder
-        layers: List[nn.Module] = [
+        layers = [
             layer(self.latent_dim, self.decoder_layers[0]),
             activation_layer,
         ]
