@@ -1,5 +1,6 @@
 import textwrap
 from pathlib import Path
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
@@ -12,27 +13,27 @@ from src.utils.Config import Config
 
 
 class VAE(nn.Module):
-    def __init__(self, config: Config, layer, input_dim: int = 2):
+    def __init__(self, config: Config, layer: nn.Module, input_dim: int = 2):
         super().__init__()
         if config.decoder_layers is None:
-            self.decoder_layers = [200, 200, 200]
+            self.decoder_layers: List[int] = [200, 200, 200]
         else:
-            self.decoder_layers = config.decoder_layers
+            self.decoder_layers: List[int] = config.decoder_layers
 
         if config.encoder_layers is None:
-            self.encoder_layers = [200, 200, 200]
+            self.encoder_layers: List[int] = [200, 200, 200]
         else:
-            self.encoder_layers = config.encoder_layers
+            self.encoder_layers: List[int] = config.encoder_layers
 
-        self.input_dim = input_dim
-        self.latent_dim = config.latent_dim
+        self.input_dim: int = input_dim
+        self.latent_dim: int = config.latent_dim
 
         # for stats
-        self.n_0 = 0
-        self.n_1 = 0
-        self.n_minus_1 = 0
+        self.n_0: int = 0
+        self.n_1: int = 0
+        self.n_minus_1: int = 0
 
-        activation_layer = (
+        activation_layer: nn.Module = (
             nn.ReLU()
             if config.activation_layer == "ReLU"
             else nn.Sigmoid()
@@ -43,7 +44,10 @@ class VAE(nn.Module):
         )
 
         # Encoder
-        layers = [layer(input_dim, self.encoder_layers[0]), activation_layer]
+        layers: List[nn.Module] = [
+            layer(input_dim, self.encoder_layers[0]),
+            activation_layer,
+        ]
         if config.norm == "RMSNorm":
             layers.append(RMSNorm(self.encoder_layers[0]))
         for i in range(1, len(self.encoder_layers)):
@@ -51,15 +55,20 @@ class VAE(nn.Module):
             if config.norm == "RMSNorm":
                 layers.append(RMSNorm(self.encoder_layers[i]))
             layers.append(activation_layer)
-        self.encoder = nn.Sequential(*layers)
+        self.encoder: nn.Sequential = nn.Sequential(*layers)
 
-        self.mean_layer = layer(self.encoder_layers[-1], self.latent_dim)  # For mu
-        self.log_var_layer = layer(
+        self.mean_layer: nn.Module = layer(
+            self.encoder_layers[-1], self.latent_dim
+        )  # For mu
+        self.log_var_layer: nn.Module = layer(
             self.encoder_layers[-1], self.latent_dim
         )  # For log variance
 
         # Decoder
-        layers = [layer(self.latent_dim, self.decoder_layers[0]), activation_layer]
+        layers: List[nn.Module] = [
+            layer(self.latent_dim, self.decoder_layers[0]),
+            activation_layer,
+        ]
         if config.norm == "RMSNorm":
             layers.append(RMSNorm(self.decoder_layers[0]))
         for i in range(1, len(self.decoder_layers)):
@@ -68,41 +77,45 @@ class VAE(nn.Module):
                 layers.append(RMSNorm(self.decoder_layers[i]))
             layers.append(activation_layer)
         layers.append(layer(self.decoder_layers[-1], input_dim))
-        self.decoder = nn.Sequential(*layers)
+        self.decoder: nn.Sequential = nn.Sequential(*layers)
 
         self.to(config.device)
-        self.device = config.device
+        self.device: torch.device = torch.device(config.device)
 
-        self.mode = "training"
-        self.config = config
+        self.mode: str = "training"
+        self.config: Config = config
 
-    def encode(self, x):
-        h = self.encoder(x)
+    def encode(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        h: torch.Tensor = self.encoder(x)
         return self.mean_layer(h), self.log_var_layer(h)
 
-    def reparameterize(self, mu, logvar):
-        std = torch.exp(0.5 * logvar).to(self.device)
-        eps = torch.randn_like(std).to(self.device)
+    def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
+        std: torch.Tensor = torch.exp(0.5 * logvar).to(self.device)
+        eps: torch.Tensor = torch.randn_like(std).to(self.device)
         mu.to(self.device)
         return mu + eps * std
 
-    def decode(self, z):
+    def decode(self, z: torch.Tensor) -> torch.Tensor:
         return self.decoder(z)
 
-    def forward(self, x):
+    def forward(
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
 
-    def encode_latent(self, x):
+    def encode_latent(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
             mu, logvar = self.encode(x)
             return mu, logvar
 
     @staticmethod
-    def loss_function(recon_x, x, mu, logvar):
-        MSE = F.mse_loss(recon_x, x, reduction="sum")
-        KL = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    def loss_function(
+        recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        MSE: torch.Tensor = F.mse_loss(recon_x, x, reduction="sum")
+        KL: torch.Tensor = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return MSE + KL, MSE, KL
 
     def change_to_inference(self):
