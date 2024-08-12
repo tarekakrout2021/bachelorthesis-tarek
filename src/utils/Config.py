@@ -15,7 +15,6 @@ class Config:
     encoder_layers: List[int] = field(default_factory=lambda: [200, 200, 200])
     name: str = field(default="bitnet_synthetic")
     activation_layer: str = field(default="ReLU")
-    reconstruction_loss: str = field(default="mse")
     norm: str = field(default="none")
 
     # Training parameters

@@ -159,18 +159,25 @@ def get_args():
     parser = argparse.ArgumentParser(description="Update YAML configuration.")
     parser.add_argument(
         "--model",
-        help='Model name. Can be either "baseline_synthetic" or "bitnet_synthetic" or "bitnet_mnist".',
+        type=str,
+        choices=["baseline_synthetic", "bitnet_synthetic", "bitnet_mnist"],
+        default="bitnet_synthetic",
     )
     parser.add_argument("--batch_size", type=int, help="Batch size.")
     parser.add_argument("--epochs", type=int, help="Number of epochs.")
     parser.add_argument("--learning_rate", type=float, help="Learning rate.")
     parser.add_argument("--latent_dim", type=int, help="Latent dimension.")
     parser.add_argument(
-        "--activation_layer", help="activation layer can be ReLU, Sigmoid or tanh."
+        "--activation_layer",
+        type=str,
+        choices=["ReLU", "Sigmoid", "tanh"],
+        default="ReLU",
     )
     parser.add_argument(
         "--training_data",
-        help='can be either "normal" or "anisotropic" or "spiral" or "mnist".',
+        type=str,
+        choices=["normal", "anisotropic", "spiral", "mnist"],
+        default="spiral",
     )
     parser.add_argument(
         "--encoder_layers",
@@ -187,13 +194,13 @@ def get_args():
 
     parser.add_argument("--id", help="id of the run.")
 
-    parser.add_argument(
-        "--recon_loss", help="reconstruction loss, is either nll or mse."
-    )
-
     parser.add_argument("--norm", help="if it uses RMSNorm or not.")
 
-    parser.add_argument("--device", help="cuda or cpu.")
+    parser.add_argument("--device",
+                        type=str,
+                        choices=["cpu", "cuda"],
+                        default="cpu",
+                        help="device to run the model.")
 
     args = parser.parse_args()
     return args
@@ -225,8 +232,6 @@ def get_config(run_id):
         config.run_id = args.id
     if args.activation_layer:
         config.activation_layer = args.activation_layer
-    if args.recon_loss:
-        config.reconstruction_loss = args.recon_loss
     if args.norm:
         config.norm = args.norm
     if args.device:
