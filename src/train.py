@@ -21,7 +21,7 @@ def train(model, optimizer, data_loader, config, logger):
                 optimizer.zero_grad()
                 x.to(model.device)
                 recon_batch, mu, logvar = model(x)
-                loss, mse, kl = model.loss_function(recon_batch, x, mu, logvar)
+                loss, mse, kl = model.loss_function(recon_batch, x, mu, logvar, config)
                 train_loss += loss.item()
                 mse_loss += mse.item()
                 kl_loss += kl.item()
@@ -48,7 +48,7 @@ def train(model, optimizer, data_loader, config, logger):
                 data.to(model.device)
                 recon_batch, mu, logvar = model(data)
 
-                loss, mse, kl = model.loss_function(recon_batch, data, mu, logvar)
+                loss, mse, kl = model.loss_function(recon_batch, data, mu, logvar, config)
 
                 train_loss += loss.item()
                 mse_loss += mse.item()

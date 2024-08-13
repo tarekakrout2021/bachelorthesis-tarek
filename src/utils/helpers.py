@@ -21,6 +21,9 @@ def plot_data(
     path="data.png",
 ):
     plt.figure(figsize=(8, 6))
+    print(type (data))
+    if isinstance(data, torch.Tensor):
+        data = data.cpu().numpy()
     plt.scatter(data[:, 0], data[:, 1], alpha=0.5)
     plt.title(title)
     plt.xlabel(x)
@@ -75,7 +78,10 @@ def plot_latent_space(model, config, scale=1.0, n=25, digit_size=28, figsize=15)
 
     for i, yi in enumerate(grid_y):
         for j, xi in enumerate(grid_x):
-            z_sample = torch.tensor([[xi, yi]], dtype=torch.float).to(model.device)
+            z_sample = torch.tensor([[xi, yi]], dtype=torch.float)
+            if config.device == "cuda":
+                z_sample = z_sample.cuda()
+
             x_decoded = model.decode(z_sample)
             digit = x_decoded[0].detach().cpu().reshape(digit_size, digit_size)
             figure[

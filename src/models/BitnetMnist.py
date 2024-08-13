@@ -13,7 +13,6 @@ class BitnetMnist(VAE):
             layer=BitLinear158,
             input_dim=784,
         )
-        # TODO: maybe this only works for the mse loss ?
         self.decoder.append(nn.Sigmoid())
 
     def sample(self, n_samples=100):
