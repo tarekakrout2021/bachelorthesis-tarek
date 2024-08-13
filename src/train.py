@@ -8,7 +8,7 @@ def train(model, optimizer, data_loader, config, logger):
     model_name = config.name
     plot_dir = get_plot_dir(config)
 
-    if model_name == "bitnet_mnist":
+    if "mnist" in model_name:
         n_data = data_loader.dataset.data.shape[0]
 
         mse_array, kl_array, training_array = np.array([]), np.array([]), np.array([])

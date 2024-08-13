@@ -10,6 +10,7 @@ import torch
 from src.models.BaselineSynthetic import BaselineSynthetic
 from src.models.BitnetMnist import BitnetMnist
 from src.models.BitnetSynthetic import BitnetSynthetic
+from src.models.BaselineMnist import BaselineMnist
 from src.utils.Config import Config
 
 
@@ -43,6 +44,8 @@ def get_model(config):
         model = BitnetSynthetic(config)
     elif model_name == "bitnet_mnist":
         model = BitnetMnist(config)
+    elif model_name == "baseline_mnist":
+        model = BaselineMnist(config)
     else:
         raise ValueError(f"Model {model_name} is not supported")
 
@@ -166,7 +169,7 @@ def get_args():
     parser.add_argument(
         "--model",
         type=str,
-        choices=["baseline_synthetic", "bitnet_synthetic", "bitnet_mnist"],
+        choices=["baseline_synthetic", "bitnet_synthetic", "bitnet_mnist", "baseline_mnist"],
         default="bitnet_synthetic",
     )
     parser.add_argument("--batch_size", type=int, help="Batch size.")

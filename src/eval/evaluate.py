@@ -9,16 +9,16 @@ def evaluate(model, data_loader, config, logger):
     model_name = config.name
     PLOT_DIR = helpers.get_plot_dir(config)
 
-    if model_name == "bitnet_mnist":
-        model.change_to_inference()
+    if "mnist" in model_name:
+        if "bitnet" in model_name:
+            model.change_to_inference()
+            assert model.mode == "inference"
         logger.info(model)
 
         # assert model.mode == "inference"
         # helpers.plot_latent_space(model, config)
 
         # Inference mode: reconstruct data
-        assert model.mode == "inference"
-
         dataiter = iter(data_loader)
         image = next(dataiter)
 
@@ -38,7 +38,6 @@ def evaluate(model, data_loader, config, logger):
         plt.close()
 
         # Inference mode: sample from prior
-        assert model.mode == "inference"
         n_samples = 300
         generated_samples = model.sample(n_samples=n_samples)
         fig, axes = plt.subplots(nrows=10, ncols=10, figsize=(15, 15))
@@ -49,20 +48,19 @@ def evaluate(model, data_loader, config, logger):
         plt.savefig(PLOT_DIR / f"sampled_from_the_prior.png")
         plt.close()
 
-        # run weight stats
-        assert model.mode == "inference"
+        if "bitnet" in model_name:
+            # run weight stats
+            model.weight_stats()
 
-        model.weight_stats()
+            logger.info(f"Stats: {model.n_0} zeros in ternary weights")
+            logger.info(f"Stats: {model.n_1} ones in ternary weights")
+            logger.info(f"Stats: {model.n_minus_1} minus ones in ternary weights")
 
-        logger.info(f"Stats: {model.n_0} zeros in ternary weights")
-        logger.info(f"Stats: {model.n_1} ones in ternary weights")
-        logger.info(f"Stats: {model.n_minus_1} minus ones in ternary weights")
-
-        helpers.plot_bar(
-            [model.n_minus_1, model.n_0, model.n_1],
-            values=[-1, 0, 1],
-            path=PLOT_DIR / "bar_chart_weights.png",
-        )
+            helpers.plot_bar(
+                [model.n_minus_1, model.n_0, model.n_1],
+                values=[-1, 0, 1],
+                path=PLOT_DIR / "bar_chart_weights.png",
+            )
 
     else:
         # Training mode: plot q(z|x) in training mode

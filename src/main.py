@@ -22,20 +22,16 @@ def main():
     data = get_data(config)
     if config.training_data != "mnist":
         plot_initial_data(data, config)
+        data = torch.utils.data.DataLoader(
+            data, batch_size=config.batch_size, shuffle=True
+        )
 
     model = get_model(config)
 
     optimizer = Adam(model.parameters(), lr=config.learning_rate)
-    data_loader = torch.utils.data.DataLoader(
-        data, batch_size=config.batch_size, shuffle=True
-    )
-    # TODO  there is probably a better way to do this
-    if config.training_data == "mnist":
-        train(model, optimizer, data, config, logger)
-        evaluate(model, data, config, logger)
-    else:
-        train(model, optimizer, data_loader, config, logger)
-        evaluate(model, data_loader, config, logger)
+
+    train(model, optimizer, data, config, logger)
+    evaluate(model, data, config, logger)
 
     torch.save(model.state_dict(), run_dir / "model.pth")
     log_model_info(logger, config)
