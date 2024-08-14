@@ -10,9 +10,10 @@ def evaluate(model, data_loader, config, logger):
     PLOT_DIR = helpers.get_plot_dir(config)
 
     if "mnist" in model_name:
-        if "bitnet" in model_name:
-            model.change_to_inference()
-            assert model.mode == "inference"
+        helpers.plot_weight_distributions(model, PLOT_DIR)
+
+        model.change_to_inference()
+        assert model.mode == "inference"
         logger.info(model)
 
         # assert model.mode == "inference"
@@ -82,8 +83,8 @@ def evaluate(model, data_loader, config, logger):
             path=plot_dir,
         )
 
-        if "bitnet" in model_name:
-            model.change_to_inference()
+        helpers.plot_weight_distributions(model, PLOT_DIR)
+        model.change_to_inference()
 
         # Sanity checks
         logger.info(
