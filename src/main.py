@@ -1,5 +1,4 @@
 # import shutil
-import torch
 from data.make_dataset import get_data, plot_initial_data
 from eval.evaluate import evaluate
 from torch.optim import Adam

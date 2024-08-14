@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import seaborn as sns
 
 from src.models.BaselineSynthetic import BaselineSynthetic
 from src.models.BitnetMnist import BitnetMnist
@@ -15,14 +16,13 @@ from src.utils.Config import Config
 
 
 def plot_data(
-    data,
-    title="Input data",
-    x="Dimension 1",
-    y="Dimension 2",
-    path="data.png",
+        data,
+        title="Input data",
+        x="Dimension 1",
+        y="Dimension 2",
+        path="data.png",
 ):
     plt.figure(figsize=(8, 6))
-    print(type (data))
     if isinstance(data, torch.Tensor):
         data = data.cpu().numpy()
     plt.scatter(data[:, 0], data[:, 1], alpha=0.5)
@@ -88,8 +88,8 @@ def plot_latent_space(model, config, scale=1.0, n=25, digit_size=28, figsize=15)
             x_decoded = model.decode(z_sample)
             digit = x_decoded[0].detach().cpu().reshape(digit_size, digit_size)
             figure[
-                i * digit_size : (i + 1) * digit_size,
-                j * digit_size : (j + 1) * digit_size,
+            i * digit_size: (i + 1) * digit_size,
+            j * digit_size: (j + 1) * digit_size,
             ] = digit
 
     plt.figure(figsize=(figsize, figsize))
@@ -164,6 +164,18 @@ def log_model_info(logger, config):
     logger.info(config)
 
 
+def plot_weight_distributions(model, plot_dir):
+    for name, param in model.named_parameters():
+        if 'weight' in name:  # filter out biases or other parameters
+            plt.figure(figsize=(8, 6))
+            sns.histplot(param.data.cpu().numpy().flatten(), bins=50, kde=True)
+            plt.title(f'Weight Distribution of {name}')
+            plt.xlabel('Weight values')
+            plt.ylabel('Frequency')
+            plt.savefig(plot_dir / "weight_distribution.png")
+            plt.close()
+
+
 def get_args():
     parser = argparse.ArgumentParser(description="Update YAML configuration.")
     parser.add_argument(
@@ -185,7 +197,7 @@ def get_args():
     parser.add_argument(
         "--training_data",
         type=str,
-        choices=["normal", "anisotropic", "spiral", "mnist"],
+        choices=["normal", "anisotropic", "spiral", "mnist", "dino"],
         default="spiral",
     )
     parser.add_argument(

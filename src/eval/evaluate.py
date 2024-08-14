@@ -61,6 +61,8 @@ def evaluate(model, data_loader, config, logger):
                 values=[-1, 0, 1],
                 path=PLOT_DIR / "bar_chart_weights.png",
             )
+        else:
+            helpers.plot_weight_distributions(model, PLOT_DIR)
 
     else:
         # Training mode: plot q(z|x) in training mode
@@ -155,3 +157,5 @@ def evaluate(model, data_loader, config, logger):
                 values=[-1, 0, 1],
                 path=PLOT_DIR / "ternary_weights.png",
             )
+        else:
+            helpers.plot_weight_distributions(model, PLOT_DIR)

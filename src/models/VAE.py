@@ -168,8 +168,8 @@ class VAE(nn.Module):
 
                     # Difference Plot
                     plot_heatmap(
-                        new_layer.weight.data,
                         old_layer_weight,
+                        new_layer.weight.data,
                         f"{name}\n_{layer}",
                         self.config,
                     )
