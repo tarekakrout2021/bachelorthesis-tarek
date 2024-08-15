@@ -7,3 +7,4 @@ PyYAML
 pandas
 seaborn
 torcheval
+tqdm
