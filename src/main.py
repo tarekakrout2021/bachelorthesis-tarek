@@ -14,18 +14,16 @@ def main():
     config = get_config(run_id)
 
     run_dir = get_run_dir(config)
-    logger = init_logger(run_dir)
+    logger = init_logger(run_dir, config.log_level)
     logger.info(f"Run ID: {run_id}")
     print(run_id)
 
     data = get_data(config)
     if config.training_data != "mnist":
         plot_initial_data(data, config)
-        data = torch.utils.data.DataLoader(
-            data, batch_size=config.batch_size, shuffle=True
-        )
 
     model = get_model(config)
+    logger.debug(model)
 
     optimizer = Adam(model.parameters(), lr=config.learning_rate)
 

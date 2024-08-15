@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import seaborn as sns
+from torch.utils.data import DataLoader
 
 from src.models.BaselineSynthetic import BaselineSynthetic
 from src.models.BitnetMnist import BitnetMnist
@@ -16,15 +17,18 @@ from src.utils.Config import Config
 
 
 def plot_data(
-        data,
+        data: DataLoader | torch.Tensor,
         title="Input data",
         x="Dimension 1",
         y="Dimension 2",
         path="data.png",
 ):
-    plt.figure(figsize=(8, 6))
+    if isinstance(data, DataLoader):
+        data = data.dataset.data.cpu().numpy()
     if isinstance(data, torch.Tensor):
         data = data.cpu().numpy()
+
+    plt.figure(figsize=(8, 6))
     plt.scatter(data[:, 0], data[:, 1], alpha=0.5)
     plt.title(title)
     plt.xlabel(x)
@@ -36,7 +40,7 @@ def plot_data(
 
 
 def get_model(config):
-    model_name = config.name
+    model_name = config.model_name
 
     if model_name == "baseline_synthetic":
         model = BaselineSynthetic(config)
@@ -52,10 +56,12 @@ def get_model(config):
     return model
 
 
-def plot_bar(counts, values=[-1, 0, 1], path="weights.png"):
+def plot_bar(counts, values=None, path="weights.png"):
     """
     Plot the distribution of weights.
     """
+    if values is None:
+        values = [-1, 0, 1]
     plt.figure(figsize=(8, 6))
     plt.bar(values, counts, edgecolor="black")
     plt.title("Distribution of weights")
@@ -145,7 +151,7 @@ def generate_id():
     return str(uuid.uuid4())
 
 
-def init_logger(run_dir):
+def init_logger(run_dir, log_level):
     logging.basicConfig(
         filename=run_dir / "test.log",
         filemode="a",
@@ -155,13 +161,13 @@ def init_logger(run_dir):
     )
 
     logger = logging.getLogger("logger")
-
+    logger.setLevel(getattr(logging, log_level.upper(), None))
     return logger
 
 
 def log_model_info(logger, config):
-    logging.info("Model configuration: ")
-    logger.info(config)
+    logging.debug("Model configuration: ")
+    logger.debug(config)
 
 
 def plot_weight_distributions(model, plot_dir):
@@ -179,7 +185,7 @@ def plot_weight_distributions(model, plot_dir):
 def get_args():
     parser = argparse.ArgumentParser(description="Update YAML configuration.")
     parser.add_argument(
-        "--model",
+        "--model_name",
         type=str,
         choices=["baseline_synthetic", "bitnet_synthetic", "bitnet_mnist", "baseline_mnist"],
         default="bitnet_synthetic",
@@ -197,7 +203,7 @@ def get_args():
     parser.add_argument(
         "--training_data",
         type=str,
-        choices=["normal", "anisotropic", "spiral", "mnist", "dino"],
+        choices=["normal", "anisotropic", "spiral", "mnist", "dino", "moons", "circles", "mixture"],
         default="spiral",
     )
     parser.add_argument(
@@ -213,7 +219,7 @@ def get_args():
         help="array describing the decoder layer.",
     )
 
-    parser.add_argument("--id", help="id of the run.")
+    parser.add_argument("--run_id", help="id of the run.")
 
     parser.add_argument("--norm", help="if it uses RMSNorm or not.")
 
@@ -222,6 +228,14 @@ def get_args():
                         choices=["cpu", "cuda"],
                         default="cpu",
                         help="device to run the model.")
+
+    parser.add_argument("--saving_interval", type=int, help="Interval to save the model.")
+
+    parser.add_argument("--log_level",
+                        type=str,
+                        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+                        default="INFO",
+                        help="Log level for the logger.")
 
     args = parser.parse_args()
     return args
@@ -232,30 +246,8 @@ def get_config(run_id):
     config = Config()
     config.run_id = run_id
 
-    if args.batch_size:
-        config.batch_size = args.batch_size
-    if args.epochs:
-        config.epochs = args.epochs
-    if args.learning_rate:
-        config.learning_rate = args.learning_rate
-    if args.latent_dim:
-        config.latent_dim = args.latent_dim
-    if args.training_data:
-        config.training_data = args.training_data
-    if args.model:
-        config.name = args.model
-    if args.encoder_layers:
-        config.encoder_layers = args.encoder_layers
-    if args.decoder_layers:
-        config.decoder_layers = args.decoder_layers
-    # if there is a run_id in the arguments, use it.
-    if args.id:
-        config.run_id = args.id
-    if args.activation_layer:
-        config.activation_layer = args.activation_layer
-    if args.norm:
-        config.norm = args.norm
-    if args.device:
-        config.device = args.device
+    for arg in vars(args):
+        if getattr(args, arg) is not None:
+            setattr(config, arg, getattr(args, arg))
 
     return config
