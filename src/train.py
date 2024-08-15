@@ -16,12 +16,6 @@ def train(model, optimizer, data_loader, config, logger, run_dir):
 
     mse_array, kl_array, training_array = np.array([]), np.array([]), np.array([])
     for epoch in range(n_epochs):
-        if epoch % config.saving_interval == 0 or epoch == n_epochs - 1:
-            tmp_model = copy.deepcopy(model)
-            tmp_model.change_to_inference()
-            tmp_model.eval()
-            torch.save(tmp_model.state_dict(), run_dir / f"model_epoch_{epoch}.pth")
-
         model.train()
         train_loss = mse_loss = kl_loss = 0
         for batch_idx, data in enumerate(data_loader):
@@ -51,6 +45,12 @@ def train(model, optimizer, data_loader, config, logger, run_dir):
         kl_array = np.append(kl_array, kl_loss / n_data)
         training_array = np.append(training_array, train_loss / n_data)
         logger.info(f"Train Epoch: {epoch}  Average Loss: {train_loss / n_data:.6f}")
+
+        if epoch % config.saving_interval == 0 or epoch == n_epochs - 1:
+            tmp_model = copy.deepcopy(model)
+            tmp_model.change_to_inference()
+            tmp_model.eval()
+            torch.save(tmp_model.state_dict(), run_dir / f"model_epoch_{epoch}.pth")
 
     # Plot loss
     plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir)
