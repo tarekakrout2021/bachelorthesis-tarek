@@ -118,9 +118,8 @@ def get_data(config: Config):
         train_dataset = MNIST(path, transform=transform, download=True)
 
         # create train dataloaders
-        batch_size = 100
         train_loader = DataLoader(
-            dataset=train_dataset, batch_size=batch_size, shuffle=True
+            dataset=train_dataset, batch_size=config.batch_size, shuffle=True
         )
 
         return train_loader

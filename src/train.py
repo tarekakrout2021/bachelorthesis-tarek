@@ -21,9 +21,9 @@ def train(model, optimizer, data_loader, config, logger, run_dir):
         for batch_idx, data in enumerate(data_loader):
             if "mnist" in model_name:
                 x = data[0]
-                x = x.view(100, 784).to(
+                x = x.view(config.batch_size, 784).to(
                     model.device
-                )  # batch_size = 100 and x_dim = 784
+                )  # x_dim = 784
                 data = x
             optimizer.zero_grad()
             data.to(model.device)

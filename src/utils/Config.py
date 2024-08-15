@@ -18,7 +18,7 @@ class Config:
     norm: str = field(default="none")
 
     # Training parameters
-    batch_size: int = field(default=64)
+    batch_size: int = field(default=100)
     epochs: int = field(default=10)
     learning_rate: float = field(default=0.001)
     run_id: str = field(default="0")
