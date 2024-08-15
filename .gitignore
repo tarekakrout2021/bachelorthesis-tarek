@@ -14,3 +14,6 @@ test
 runs
 exps
 get_results.py
+
+
+bitnet_heatmap_diffusion
