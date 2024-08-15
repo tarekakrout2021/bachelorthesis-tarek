@@ -130,10 +130,13 @@ def evaluate(model, data_loader, config, logger):
         plot_latent_space(data_loader, model, PLOT_DIR)
         helpers.plot_weight_distributions(model, PLOT_DIR)
 
-        model.change_to_inference()
         # Sanity checks : Check whether all BitLinear layers are set to inference mode
         if "bitnet" in model_name:
             assert model.mode == "inference"
+            model.change_to_inference()
+        else:
+            model.eval()
+
         logger.debug(model)
 
         # Inference mode: plot q(z|x) in inference mode
