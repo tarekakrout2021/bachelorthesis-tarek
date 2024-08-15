@@ -4,20 +4,17 @@ import os
 import textwrap
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 import datasets
 from positional_embeddings import PositionalEmbedding
-
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
-from src.utils.Config import Config
 
 
 class Block(nn.Module):
@@ -32,16 +29,25 @@ class Block(nn.Module):
 
 
 class MLP(nn.Module):
-    def __init__(self, hidden_size: int = 128, hidden_layers: int = 3, emb_size: int = 128,
-                 time_emb: str = "sinusoidal", input_emb: str = "sinusoidal"):
+    def __init__(
+        self,
+        hidden_size: int = 128,
+        hidden_layers: int = 3,
+        emb_size: int = 128,
+        time_emb: str = "sinusoidal",
+        input_emb: str = "sinusoidal",
+    ):
         super().__init__()
 
         self.time_mlp = PositionalEmbedding(emb_size, time_emb)
         self.input_mlp1 = PositionalEmbedding(emb_size, input_emb, scale=25.0)
         self.input_mlp2 = PositionalEmbedding(emb_size, input_emb, scale=25.0)
 
-        concat_size = len(self.time_mlp.layer) + \
-            len(self.input_mlp1.layer) + len(self.input_mlp2.layer)
+        concat_size = (
+            len(self.time_mlp.layer)
+            + len(self.input_mlp1.layer)
+            + len(self.input_mlp2.layer)
+        )
         layers = [BitLinear158(concat_size, hidden_size), nn.GELU()]
         for _ in range(hidden_layers):
             layers.append(Block(hidden_size))
@@ -55,10 +61,12 @@ class MLP(nn.Module):
         x = torch.cat((x1_emb, x2_emb, t_emb), dim=-1)
         x = self.joint_mlp(x)
         return x
+
     def change_to_inference(self):
         """
         Replaces layers in network with inference layers and quantizes the weights.
         """
+
         def plot_heatmap(weights, quantized_weights, name, dir: str):
             """
             Plots the original weights and the quantized weights as heatmaps.
@@ -117,38 +125,50 @@ class MLP(nn.Module):
         self.mode = "inference"
 
 
-class NoiseScheduler():
-    def __init__(self,
-                 num_timesteps=1000,
-                 beta_start=0.0001,
-                 beta_end=0.02,
-                 beta_schedule="linear"):
-
+class NoiseScheduler:
+    def __init__(
+        self,
+        num_timesteps=1000,
+        beta_start=0.0001,
+        beta_end=0.02,
+        beta_schedule="linear",
+    ):
         self.num_timesteps = num_timesteps
         if beta_schedule == "linear":
             self.betas = torch.linspace(
-                beta_start, beta_end, num_timesteps, dtype=torch.float32)
+                beta_start, beta_end, num_timesteps, dtype=torch.float32
+            )
         elif beta_schedule == "quadratic":
-            self.betas = torch.linspace(
-                beta_start ** 0.5, beta_end ** 0.5, num_timesteps, dtype=torch.float32) ** 2
+            self.betas = (
+                torch.linspace(
+                    beta_start**0.5, beta_end**0.5, num_timesteps, dtype=torch.float32
+                )
+                ** 2
+            )
 
         self.alphas = 1.0 - self.betas
         self.alphas_cumprod = torch.cumprod(self.alphas, axis=0)
-        self.alphas_cumprod_prev = F.pad(
-            self.alphas_cumprod[:-1], (1, 0), value=1.)
+        self.alphas_cumprod_prev = F.pad(self.alphas_cumprod[:-1], (1, 0), value=1.0)
 
         # required for self.add_noise
-        self.sqrt_alphas_cumprod = self.alphas_cumprod ** 0.5
+        self.sqrt_alphas_cumprod = self.alphas_cumprod**0.5
         self.sqrt_one_minus_alphas_cumprod = (1 - self.alphas_cumprod) ** 0.5
 
         # required for reconstruct_x0
         self.sqrt_inv_alphas_cumprod = torch.sqrt(1 / self.alphas_cumprod)
-        self.sqrt_inv_alphas_cumprod_minus_one = torch.sqrt(
-            1 / self.alphas_cumprod - 1)
+        self.sqrt_inv_alphas_cumprod_minus_one = torch.sqrt(1 / self.alphas_cumprod - 1)
 
         # required for q_posterior
-        self.posterior_mean_coef1 = self.betas * torch.sqrt(self.alphas_cumprod_prev) / (1. - self.alphas_cumprod)
-        self.posterior_mean_coef2 = (1. - self.alphas_cumprod_prev) * torch.sqrt(self.alphas) / (1. - self.alphas_cumprod)
+        self.posterior_mean_coef1 = (
+            self.betas
+            * torch.sqrt(self.alphas_cumprod_prev)
+            / (1.0 - self.alphas_cumprod)
+        )
+        self.posterior_mean_coef2 = (
+            (1.0 - self.alphas_cumprod_prev)
+            * torch.sqrt(self.alphas)
+            / (1.0 - self.alphas_cumprod)
+        )
 
     def reconstruct_x0(self, x_t, t, noise):
         s1 = self.sqrt_inv_alphas_cumprod[t]
@@ -169,7 +189,11 @@ class NoiseScheduler():
         if t == 0:
             return 0
 
-        variance = self.betas[t] * (1. - self.alphas_cumprod_prev[t]) / (1. - self.alphas_cumprod[t])
+        variance = (
+            self.betas[t]
+            * (1.0 - self.alphas_cumprod_prev[t])
+            / (1.0 - self.alphas_cumprod[t])
+        )
         variance = variance.clip(1e-20)
         return variance
 
@@ -203,35 +227,54 @@ class NoiseScheduler():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment_name", type=str, default="base")
-    parser.add_argument("--dataset", type=str, default="dino", choices=["circle", "dino", "line", "moons"])
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="dino",
+        choices=["circle", "dino", "line", "moons"],
+    )
     parser.add_argument("--train_batch_size", type=int, default=32)
     parser.add_argument("--eval_batch_size", type=int, default=1000)
     parser.add_argument("--num_epochs", type=int, default=200)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--num_timesteps", type=int, default=50)
-    parser.add_argument("--beta_schedule", type=str, default="linear", choices=["linear", "quadratic"])
+    parser.add_argument(
+        "--beta_schedule", type=str, default="linear", choices=["linear", "quadratic"]
+    )
     parser.add_argument("--embedding_size", type=int, default=128)
     parser.add_argument("--hidden_size", type=int, default=128)
     parser.add_argument("--hidden_layers", type=int, default=3)
-    parser.add_argument("--time_embedding", type=str, default="sinusoidal", choices=["sinusoidal", "learnable", "linear", "zero"])
-    parser.add_argument("--input_embedding", type=str, default="sinusoidal", choices=["sinusoidal", "learnable", "linear", "identity"])
+    parser.add_argument(
+        "--time_embedding",
+        type=str,
+        default="sinusoidal",
+        choices=["sinusoidal", "learnable", "linear", "zero"],
+    )
+    parser.add_argument(
+        "--input_embedding",
+        type=str,
+        default="sinusoidal",
+        choices=["sinusoidal", "learnable", "linear", "identity"],
+    )
     parser.add_argument("--save_images_step", type=int, default=1)
     config = parser.parse_args()
 
     dataset = datasets.get_dataset(config.dataset)
     dataloader = DataLoader(
-        dataset, batch_size=config.train_batch_size, shuffle=True, drop_last=True)
+        dataset, batch_size=config.train_batch_size, shuffle=True, drop_last=True
+    )
 
     model = MLP(
         hidden_size=config.hidden_size,
         hidden_layers=config.hidden_layers,
         emb_size=config.embedding_size,
         time_emb=config.time_embedding,
-        input_emb=config.input_embedding)
+        input_emb=config.input_embedding,
+    )
 
     noise_scheduler = NoiseScheduler(
-        num_timesteps=config.num_timesteps,
-        beta_schedule=config.beta_schedule)
+        num_timesteps=config.num_timesteps, beta_schedule=config.beta_schedule
+    )
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -283,7 +326,6 @@ if __name__ == "__main__":
                     residual = tmp_model(sample, t)
                 sample = noise_scheduler.step(residual, t[0], sample)
             frames.append(sample.numpy())
-
 
     print(model)
     model.eval()

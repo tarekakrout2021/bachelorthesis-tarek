@@ -5,23 +5,23 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 import seaborn as sns
+import torch
 from torch.utils.data import DataLoader
 
+from src.models.BaselineMnist import BaselineMnist
 from src.models.BaselineSynthetic import BaselineSynthetic
 from src.models.BitnetMnist import BitnetMnist
 from src.models.BitnetSynthetic import BitnetSynthetic
-from src.models.BaselineMnist import BaselineMnist
 from src.utils.Config import Config
 
 
 def plot_data(
-        data: DataLoader | torch.Tensor,
-        title="Input data",
-        x="Dimension 1",
-        y="Dimension 2",
-        path="data.png",
+    data: DataLoader | torch.Tensor,
+    title="Input data",
+    x="Dimension 1",
+    y="Dimension 2",
+    path="data.png",
 ):
     if isinstance(data, DataLoader):
         data = data.dataset.data.cpu().numpy()
@@ -94,8 +94,8 @@ def plot_latent_space(model, config, scale=1.0, n=25, digit_size=28, figsize=15)
             x_decoded = model.decode(z_sample)
             digit = x_decoded[0].detach().cpu().reshape(digit_size, digit_size)
             figure[
-            i * digit_size: (i + 1) * digit_size,
-            j * digit_size: (j + 1) * digit_size,
+                i * digit_size : (i + 1) * digit_size,
+                j * digit_size : (j + 1) * digit_size,
             ] = digit
 
     plt.figure(figsize=(figsize, figsize))
@@ -172,12 +172,12 @@ def log_model_info(logger, config):
 
 def plot_weight_distributions(model, plot_dir):
     for name, param in model.named_parameters():
-        if 'weight' in name:  # filter out biases or other parameters
+        if "weight" in name:  # filter out biases or other parameters
             plt.figure(figsize=(8, 6))
             sns.histplot(param.data.cpu().numpy().flatten(), bins=50, kde=True)
-            plt.title(f'Weight Distribution of {name}')
-            plt.xlabel('Weight values')
-            plt.ylabel('Frequency')
+            plt.title(f"Weight Distribution of {name}")
+            plt.xlabel("Weight values")
+            plt.ylabel("Frequency")
             plt.savefig(plot_dir / "weight_distribution.png")
             plt.close()
 
@@ -187,7 +187,12 @@ def get_args():
     parser.add_argument(
         "--model_name",
         type=str,
-        choices=["baseline_synthetic", "bitnet_synthetic", "bitnet_mnist", "baseline_mnist"],
+        choices=[
+            "baseline_synthetic",
+            "bitnet_synthetic",
+            "bitnet_mnist",
+            "baseline_mnist",
+        ],
         default="bitnet_synthetic",
     )
     parser.add_argument("--batch_size", type=int, help="Batch size.")
@@ -203,7 +208,16 @@ def get_args():
     parser.add_argument(
         "--training_data",
         type=str,
-        choices=["normal", "anisotropic", "spiral", "mnist", "dino", "moons", "circles", "mixture"],
+        choices=[
+            "normal",
+            "anisotropic",
+            "spiral",
+            "mnist",
+            "dino",
+            "moons",
+            "circles",
+            "mixture",
+        ],
         default="spiral",
     )
     parser.add_argument(
@@ -223,19 +237,25 @@ def get_args():
 
     parser.add_argument("--norm", help="if it uses RMSNorm or not.")
 
-    parser.add_argument("--device",
-                        type=str,
-                        choices=["cpu", "cuda"],
-                        default="cpu",
-                        help="device to run the model.")
+    parser.add_argument(
+        "--device",
+        type=str,
+        choices=["cpu", "cuda"],
+        default="cpu",
+        help="device to run the model.",
+    )
 
-    parser.add_argument("--saving_interval", type=int, help="Interval to save the model.")
+    parser.add_argument(
+        "--saving_interval", type=int, help="Interval to save the model."
+    )
 
-    parser.add_argument("--log_level",
-                        type=str,
-                        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-                        default="INFO",
-                        help="Log level for the logger.")
+    parser.add_argument(
+        "--log_level",
+        type=str,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
+        help="Log level for the logger.",
+    )
 
     args = parser.parse_args()
     return args

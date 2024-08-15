@@ -52,7 +52,9 @@ class BitLinear158(nn.Linear):
 
         # This is used for straight through estimator (STE)
         quant_input = input + (quant_input - input).detach()
-        quant_weight = self.weight.to(device) + (w_quant - self.weight.to(device)).detach()
+        quant_weight = (
+            self.weight.to(device) + (w_quant - self.weight.to(device)).detach()
+        )
 
         out = F.linear(quant_input, quant_weight)
         if self.bias is not None:
@@ -82,7 +84,10 @@ class BitLinear158Inference(nn.Linear):
         quant_input = input + (quant_input - input).detach()
 
         # out = obl.mat_mul(quant_input, self.weight) / self.beta / gamma  # TODO:  should be like this after using the kernel
-        out = F.linear(quant_input.to(device) / self.beta / gamma.to(device), self.weight.to(device))
+        out = F.linear(
+            quant_input.to(device) / self.beta / gamma.to(device),
+            self.weight.to(device),
+        )
         if self.bias is not None:
             out += self.bias.to(device).view(1, -1).expand_as(out)
 

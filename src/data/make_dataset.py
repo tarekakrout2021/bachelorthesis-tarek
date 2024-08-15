@@ -28,9 +28,11 @@ def get_data(config: Config):
         mean = [0, 0]
         cov = [[1, 0], [0, 1]]
         data = np.random.multivariate_normal(mean, cov, n_samples)
-        return DataLoader(dataset=SyntheticDataset(torch.tensor(data, dtype=torch.float32)),
-                          batch_size=config.batch_size,
-                          shuffle=True)
+        return DataLoader(
+            dataset=SyntheticDataset(torch.tensor(data, dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
     def generate_mixture_of_gaussians(n_samples: int = 15_000) -> DataLoader[Any]:
         mean1 = [0, 0]
@@ -44,17 +46,21 @@ def get_data(config: Config):
         data3 = np.random.multivariate_normal(mean3, cov3, n_samples // 3)
         data = np.vstack((data1, data2))
         data = np.vstack((data, data3))
-        return DataLoader(SyntheticDataset(torch.tensor(data, dtype=torch.float32)),
-                          batch_size=config.batch_size,
-                          shuffle=True)
+        return DataLoader(
+            SyntheticDataset(torch.tensor(data, dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
     def generate_moons(num_samples: int = 1_000, noise=0.1):
         x = make_moons(n_samples=num_samples, noise=noise)
         # make_moons returns a tuple with the first element being the data and the second being the labels
         # we don't need the labels, so we return the first element
-        return DataLoader(SyntheticDataset(torch.tensor(x[0], dtype=torch.float32)),
-                          batch_size=config.batch_size,
-                          shuffle=True)
+        return DataLoader(
+            SyntheticDataset(torch.tensor(x[0], dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
     def generate_anisotropic_single_gaussian(n_samples: int = 1000) -> DataLoader[Any]:
         X = generate_gaussian_data(n_samples)
@@ -64,12 +70,14 @@ def get_data(config: Config):
         )
         transformation_matrix = transformation_matrix @ rot_mat
         data = np.dot(X, transformation_matrix)
-        return DataLoader(SyntheticDataset(torch.tensor(data, dtype=torch.float32)),
-                          batch_size=config.batch_size,
-                          shuffle=True)
+        return DataLoader(
+            SyntheticDataset(torch.tensor(data, dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
     def generate_spiral_data(
-            n_samples: int = 10_000, noise: float = 0.5
+        n_samples: int = 10_000, noise: float = 0.5
     ) -> DataLoader[Any]:
         theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
         r = 2 * theta + noise * np.random.randn(n_samples)
@@ -77,11 +85,15 @@ def get_data(config: Config):
         y = r * np.sin(theta)
         res = np.vstack((x, y)).T
         # return torch.tensor(res, dtype=torch.float32)
-        return DataLoader(SyntheticDataset(torch.tensor(res, dtype=torch.float32)),
-                          batch_size=config.batch_size,
-                          shuffle=True)
+        return DataLoader(
+            SyntheticDataset(torch.tensor(res, dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
-    def generate_circles(n_samples: int = 10_000, noise: float = 0.15) -> DataLoader[Any]:
+    def generate_circles(
+        n_samples: int = 10_000, noise: float = 0.15
+    ) -> DataLoader[Any]:
         def circle(r, n):
             t = np.sqrt(np.random.rand(n)) * 2 * np.pi
             x = r * np.cos(t)
@@ -91,9 +103,11 @@ def get_data(config: Config):
         c1 = circle(4, n_samples // 2)
         c2 = circle(10, n_samples // 2)
         res = np.vstack((c1, c2))
-        return DataLoader(SyntheticDataset(torch.tensor(res, dtype=torch.float32)),
-                          batch_size=config.batch_size,
-                          shuffle=True)
+        return DataLoader(
+            SyntheticDataset(torch.tensor(res, dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
     def mnist_data() -> DataLoader:
         # create a transform to apply to each datapoint

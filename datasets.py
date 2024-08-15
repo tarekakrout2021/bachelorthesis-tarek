@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import torch
-
 from sklearn.datasets import make_moons
 from torch.utils.data import TensorDataset
 
@@ -24,8 +23,8 @@ def line_dataset(n=8000):
 
 def circle_dataset(n=8000):
     rng = np.random.default_rng(42)
-    x = np.round(rng.uniform(-0.5, 0.5, n)/2, 1)*2
-    y = np.round(rng.uniform(-0.5, 0.5, n)/2, 1)*2
+    x = np.round(rng.uniform(-0.5, 0.5, n) / 2, 1) * 2
+    y = np.round(rng.uniform(-0.5, 0.5, n) / 2, 1) * 2
     norm = np.sqrt(x**2 + y**2) + 1e-10
     x /= norm
     y /= norm
@@ -48,8 +47,8 @@ def dino_dataset(n=8000):
     x = np.array(x) + rng.normal(size=len(x)) * 0.15
     y = df["y"].iloc[ix].tolist()
     y = np.array(y) + rng.normal(size=len(x)) * 0.15
-    x = (x/54 - 1) * 4
-    y = (y/48 - 1) * 4
+    x = (x / 54 - 1) * 4
+    y = (y / 48 - 1) * 4
     X = np.stack((x, y), axis=1)
     return TensorDataset(torch.from_numpy(X.astype(np.float32)))
 

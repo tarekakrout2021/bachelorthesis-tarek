@@ -27,10 +27,9 @@ def main():
 
     optimizer = Adam(model.parameters(), lr=config.learning_rate)
 
-    train(model, optimizer, data, config, logger)
+    train(model, optimizer, data, config, logger, run_dir)
     evaluate(model, data, config, logger)
 
-    torch.save(model.state_dict(), run_dir / "model.pth")
     log_model_info(logger, config)
 
 

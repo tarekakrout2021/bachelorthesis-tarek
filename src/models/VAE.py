@@ -13,7 +13,12 @@ from src.utils.Config import Config
 
 
 class VAE(nn.Module):
-    def __init__(self, config: Config, layer: Type[nn.Linear] | Type[BitLinear158], input_dim: int = 2):
+    def __init__(
+        self,
+        config: Config,
+        layer: Type[nn.Linear] | Type[BitLinear158],
+        input_dim: int = 2,
+    ):
         super().__init__()
         self.decoder_layers: List[int] = [200, 200, 200]
         self.encoder_layers: List[int] = [200, 200, 200]
@@ -111,9 +116,15 @@ class VAE(nn.Module):
 
     @staticmethod
     def loss_function(
-        recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor, config: Config
+        recon_x: torch.Tensor,
+        x: torch.Tensor,
+        mu: torch.Tensor,
+        logvar: torch.Tensor,
+        config: Config,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        MSE: torch.Tensor = F.mse_loss(recon_x.to(config.device), x.to(config.device), reduction="sum")
+        MSE: torch.Tensor = F.mse_loss(
+            recon_x.to(config.device), x.to(config.device), reduction="sum"
+        )
         KL: torch.Tensor = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return MSE + KL, MSE, KL
 

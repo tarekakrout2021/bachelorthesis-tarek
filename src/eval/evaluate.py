@@ -126,7 +126,6 @@ def evaluate(model, data_loader, config, logger):
         weight_stats(model, model_name, PLOT_DIR, logger)
 
     else:
-
         # Training mode: plot q(z|x) in training mode
         plot_latent_space(data_loader, model, PLOT_DIR)
         helpers.plot_weight_distributions(model, PLOT_DIR)
