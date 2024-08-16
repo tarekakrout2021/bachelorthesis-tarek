@@ -45,16 +45,20 @@ class BitLinear158(nn.Linear):
         self.beta = 1
 
     def forward(self, input):
-        w_quant = weight_quant_training(self.weight)
+        device = input.device
+
+        w_quant = weight_quant_training(self.weight.to(device))
         quant_input = activation_quant_training(input, self.input_bits)
 
         # This is used for straight through estimator (STE)
         quant_input = input + (quant_input - input).detach()
-        quant_weight = self.weight + (w_quant - self.weight).detach()
+        quant_weight = (
+            self.weight.to(device) + (w_quant - self.weight.to(device)).detach()
+        )
 
         out = F.linear(quant_input, quant_weight)
         if self.bias is not None:
-            out += self.bias.view(1, -1).expand_as(out)
+            out += self.bias.to(device).view(1, -1).expand_as(out)
 
         return out
 
@@ -73,13 +77,18 @@ class BitLinear158Inference(nn.Linear):
         self.beta = 1
 
     def forward(self, input):
+        device = input.device
+
         quant_input, gamma = activation_quant_inference(input, self.input_bits)
 
         quant_input = input + (quant_input - input).detach()
 
         # out = obl.mat_mul(quant_input, self.weight) / self.beta / gamma  # TODO:  should be like this after using the kernel
-        out = F.linear(quant_input / self.beta / gamma, self.weight)
+        out = F.linear(
+            quant_input.to(device) / self.beta / gamma.to(device),
+            self.weight.to(device),
+        )
         if self.bias is not None:
-            out += self.bias.view(1, -1).expand_as(out)
+            out += self.bias.to(device).view(1, -1).expand_as(out)
 
         return out

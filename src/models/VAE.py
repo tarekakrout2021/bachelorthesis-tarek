@@ -9,11 +9,16 @@ from matplotlib import pyplot as plt
 
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
 from src.models.RMSNorm import RMSNorm
-from src.utils.Config import Config
+from src.utils.Config import VaeConfig
 
 
 class VAE(nn.Module):
-    def __init__(self, config: Config, layer: Type[nn.Linear] | Type[BitLinear158], input_dim: int = 2):
+    def __init__(
+        self,
+        config: VaeConfig,
+        layer: Type[nn.Linear] | Type[BitLinear158],
+        input_dim: int = 2,
+    ):
         super().__init__()
         self.decoder_layers: List[int] = [200, 200, 200]
         self.encoder_layers: List[int] = [200, 200, 200]
@@ -30,6 +35,7 @@ class VAE(nn.Module):
         self.n_0: int = 0
         self.n_1: int = 0
         self.n_minus_1: int = 0
+        self.quantization_error: float = 0.0
 
         activation_layer: nn.Module = (
             nn.ReLU()
@@ -81,26 +87,27 @@ class VAE(nn.Module):
         self.device: torch.device = torch.device(config.device)
 
         self.mode: str = "training"
-        self.config: Config = config
+        self.config: VaeConfig = config
 
     def encode(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        x.to(self.device)
         h: torch.Tensor = self.encoder(x)
         return self.mean_layer(h), self.log_var_layer(h)
 
     def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         std: torch.Tensor = torch.exp(0.5 * logvar).to(self.device)
         eps: torch.Tensor = torch.randn_like(std).to(self.device)
-        mu.to(self.device)
-        return mu + eps * std
+        return mu.to(self.device) + eps * std
 
     def decode(self, z: torch.Tensor) -> torch.Tensor:
+        z.to(self.device)
         return self.decoder(z)
 
     def forward(
         self, x: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu, logvar = self.encode(x)
-        z = self.reparameterize(mu, logvar)
+        z = self.reparameterize(mu.to(self.device), logvar.to(self.device))
         return self.decode(z), mu, logvar
 
     def encode_latent(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -110,9 +117,15 @@ class VAE(nn.Module):
 
     @staticmethod
     def loss_function(
-        recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor
+        recon_x: torch.Tensor,
+        x: torch.Tensor,
+        mu: torch.Tensor,
+        logvar: torch.Tensor,
+        config: VaeConfig,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        MSE: torch.Tensor = F.mse_loss(recon_x, x, reduction="sum")
+        MSE: torch.Tensor = F.mse_loss(
+            recon_x.to(config.device), x.to(config.device), reduction="sum"
+        )
         KL: torch.Tensor = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return MSE + KL, MSE, KL
 
@@ -121,7 +134,7 @@ class VAE(nn.Module):
         Replaces layers in network with inference layers and quantizes the weights.
         """
 
-        def plot_heatmap(weights, quantized_weights, name, config: Config):
+        def plot_heatmap(weights, quantized_weights, name, config: VaeConfig):
             """
             Plots the original weights and the quantized weights as heatmaps.
             """
@@ -133,7 +146,7 @@ class VAE(nn.Module):
             plt.subplot(1, 2, 2)
             plt.figure(figsize=(12, 6))
             plt.subplot(1, 2, 1)
-            plt.imshow(weights, cmap="viridis")
+            plt.imshow(weights.to("cpu"), cmap="viridis")
             plt.colorbar()
             name = "\n".join(
                 textwrap.wrap(name, width=40)
@@ -141,7 +154,7 @@ class VAE(nn.Module):
             plt.title(f"Non-Quantized Weights Layer \n {name}")
 
             plt.subplot(1, 2, 2)
-            plt.imshow(quantized_weights, cmap="viridis")
+            plt.imshow(quantized_weights.to("cpu"), cmap="viridis")
             plt.colorbar()
             plt.title(f"Quantized Weights Layer \n {name}")
 
@@ -165,10 +178,16 @@ class VAE(nn.Module):
                     new_layer.beta = layer.beta
                     setattr(module, name, new_layer)
 
+                    # calculate the quantization error
+                    self.quantization_error += (
+                        torch.abs(old_layer_weight - new_layer.weight.data).sum().item()
+                        / old_layer_weight.numel()
+                    )
+
                     # Difference Plot
                     plot_heatmap(
-                        new_layer.weight.data,
                         old_layer_weight,
+                        new_layer.weight.data,
                         f"{name}\n_{layer}",
                         self.config,
                     )

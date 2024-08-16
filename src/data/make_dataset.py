@@ -1,25 +1,52 @@
+from typing import Callable, Dict
+
 import numpy as np
 import pandas as pd
 import torch
 import torchvision.transforms as transforms
 from sklearn.datasets import make_moons
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchvision.datasets import MNIST
 
-from src.utils.Config import Config
+from src.data import datasets
+from src.utils.Config import DdpmConfig, VaeConfig
 from src.utils.helpers import get_plot_dir, plot_data
 
 
-def get_data(config: Config):
-    DATA = config.training_data
+class SyntheticDataset(Dataset):
+    def __init__(self, data):
+        self.data = data
 
-    def generate_gaussian_data(n_samples: int = 1000) -> torch.Tensor:
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
+
+
+def get_data_loader(config: VaeConfig | DdpmConfig) -> DataLoader:
+    if isinstance(config, VaeConfig):
+        return get_data_vae(config)
+    elif isinstance(config, DdpmConfig):
+        dataset = datasets.get_dataset(config.dataset)
+        data_loader = DataLoader(
+            dataset, batch_size=config.train_batch_size, shuffle=True, drop_last=True
+        )
+        return data_loader
+
+
+def get_data_vae(config: VaeConfig) -> DataLoader:
+    def generate_gaussian_data(n_samples: int = 1000) -> DataLoader:
         mean = [0, 0]
         cov = [[1, 0], [0, 1]]
         data = np.random.multivariate_normal(mean, cov, n_samples)
-        return torch.tensor(data, dtype=torch.float32)
+        return DataLoader(
+            dataset=SyntheticDataset(torch.tensor(data, dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
-    def generate_mixture_of_gaussians(n_samples: int = 15_000) -> torch.Tensor:
+    def generate_mixture_of_gaussians(n_samples: int = 15_000) -> DataLoader:
         mean1 = [0, 0]
         cov1 = [[1, 0], [0, 1]]
         data1 = np.random.multivariate_normal(mean1, cov1, n_samples // 3)
@@ -31,35 +58,52 @@ def get_data(config: Config):
         data3 = np.random.multivariate_normal(mean3, cov3, n_samples // 3)
         data = np.vstack((data1, data2))
         data = np.vstack((data, data3))
-        return torch.tensor(data, dtype=torch.float32)
+        return DataLoader(
+            SyntheticDataset(torch.tensor(data, dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
     def generate_moons(num_samples: int = 1_000, noise=0.1):
         x = make_moons(n_samples=num_samples, noise=noise)
         # make_moons returns a tuple with the first element being the data and the second being the labels
         # we don't need the labels, so we return the first element
-        return torch.tensor(x[0], dtype=torch.float32)
+        return DataLoader(
+            SyntheticDataset(torch.tensor(x[0], dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
-    def generate_anisotropic_single_gaussian(n_samples: int = 1000) -> torch.Tensor:
-        X = generate_gaussian_data(n_samples)
+    def generate_anisotropic_single_gaussian(n_samples: int = 1000) -> DataLoader:
+        data_loader = generate_gaussian_data(n_samples)
+        X: np.ndarray = data_loader.dataset.data.cpu().numpy()  # type: ignore
+
         transformation_matrix = np.array([[5, 0], [0, 2]])
         rot_mat = np.array(
             [[np.sqrt(2) / 2, -np.sqrt(2) / 2], [np.sqrt(2) / 2, np.sqrt(2) / 2]]
         )
         transformation_matrix = transformation_matrix @ rot_mat
         data = np.dot(X, transformation_matrix)
-        return torch.tensor(data, dtype=torch.float32)
+        return DataLoader(
+            SyntheticDataset(torch.tensor(data, dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
-    def generate_spiral_data(
-        n_samples: int = 10_000, noise: float = 0.5
-    ) -> torch.Tensor:
+    def generate_spiral_data(n_samples: int = 10_000, noise: float = 0.5) -> DataLoader:
         theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
         r = 2 * theta + noise * np.random.randn(n_samples)
         x = r * np.cos(theta)
         y = r * np.sin(theta)
         res = np.vstack((x, y)).T
-        return torch.tensor(res, dtype=torch.float32)
+        # return torch.tensor(res, dtype=torch.float32)
+        return DataLoader(
+            SyntheticDataset(torch.tensor(res, dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
-    def generate_circles(n_samples: int = 10_000, noise: float = 0.15) -> torch.Tensor:
+    def generate_circles(n_samples: int = 10_000, noise: float = 0.15) -> DataLoader:
         def circle(r, n):
             t = np.sqrt(np.random.rand(n)) * 2 * np.pi
             x = r * np.cos(t)
@@ -69,7 +113,11 @@ def get_data(config: Config):
         c1 = circle(4, n_samples // 2)
         c2 = circle(10, n_samples // 2)
         res = np.vstack((c1, c2))
-        return torch.tensor(res, dtype=torch.float32)
+        return DataLoader(
+            SyntheticDataset(torch.tensor(res, dtype=torch.float32)),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
     def mnist_data() -> DataLoader:
         # create a transform to apply to each datapoint
@@ -80,9 +128,8 @@ def get_data(config: Config):
         train_dataset = MNIST(path, transform=transform, download=True)
 
         # create train dataloaders
-        batch_size = 100
         train_loader = DataLoader(
-            dataset=train_dataset, batch_size=batch_size, shuffle=True
+            dataset=train_dataset, batch_size=config.batch_size, shuffle=True
         )
 
         return train_loader
@@ -101,32 +148,37 @@ def get_data(config: Config):
         x = (x / 54 - 1) * 4
         y = (y / 48 - 1) * 4
         X = np.stack((x, y), axis=1)
-        return torch.tensor(torch.from_numpy(X.astype(np.float32)))
+        return DataLoader(
+            SyntheticDataset(torch.tensor(X.astype(np.float32))),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
-    if DATA == "normal":
-        return generate_gaussian_data()
-    elif DATA == "anisotropic":
-        return generate_anisotropic_single_gaussian()
-    elif DATA == "spiral":
-        return generate_spiral_data()
-    elif DATA == "mnist":
-        return mnist_data()
-    elif DATA == "mixture":
-        return generate_mixture_of_gaussians()
-    elif DATA == "moons":
-        return generate_moons()
-    elif DATA == "circles":
-        return generate_circles()
-    elif DATA == "dino":
-        return dino_dataset()
-    raise ValueError(f"Invalid data type {DATA}")
+    DataGenerator = Callable[[], DataLoader]
+
+    data_generators: Dict[str, DataGenerator] = {
+        "normal": generate_gaussian_data,
+        "anisotropic": generate_anisotropic_single_gaussian,
+        "spiral": generate_spiral_data,
+        "mnist": mnist_data,
+        "mixture": generate_mixture_of_gaussians,
+        "moons": generate_moons,
+        "circles": generate_circles,
+        "dino": dino_dataset,
+    }
+
+    try:
+        data_loader = data_generators[config.training_data]()
+        return data_loader
+    except KeyError:
+        raise ValueError(f"Invalid data type {config.training_data}")
 
 
-def plot_initial_data(data: torch.Tensor, config: Config) -> None:
+def plot_initial_data(data_loader: DataLoader, config: VaeConfig | DdpmConfig) -> None:
     plot_dir = get_plot_dir(config)
     plot_dir = plot_dir / "initial_data.png"
     plot_data(
-        data,
+        data_loader,
         title="initial input data",
         x="Dimension 1",
         y="Dimension 2",

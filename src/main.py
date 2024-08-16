@@ -1,9 +1,7 @@
 # import shutil
-import torch
-from data.make_dataset import get_data, plot_initial_data
+from data.make_dataset import get_data_loader
 from eval.evaluate import evaluate
-from torch.optim import Adam
-from train import train
+from train.train import train
 from utils.helpers import *
 
 
@@ -15,29 +13,20 @@ def main():
     config = get_config(run_id)
 
     run_dir = get_run_dir(config)
-    logger = init_logger(run_dir)
+    logger = init_logger(run_dir, config.log_level)
     logger.info(f"Run ID: {run_id}")
     print(run_id)
 
-    data = get_data(config)
-    if config.training_data != "mnist":
-        plot_initial_data(data, config)
+    data_loader = get_data_loader(config)
 
     model = get_model(config)
+    logger.debug(model)
 
-    optimizer = Adam(model.parameters(), lr=config.learning_rate)
-    data_loader = torch.utils.data.DataLoader(
-        data, batch_size=config.batch_size, shuffle=True
-    )
-    # TODO  there is probably a better way to do this
-    if config.training_data == "mnist":
-        train(model, optimizer, data, config, logger)
-        evaluate(model, data, config, logger)
-    else:
-        train(model, optimizer, data_loader, config, logger)
-        evaluate(model, data_loader, config, logger)
+    optimizer = get_optimizer(model, config)
 
-    torch.save(model.state_dict(), run_dir / "model.pth")
+    train(model, optimizer, data_loader, config, logger, run_dir)
+    evaluate(model, data_loader, config, logger, run_dir)
+
     log_model_info(logger, config)
 
 

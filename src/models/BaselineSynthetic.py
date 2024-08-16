@@ -1,11 +1,11 @@
 import torch.nn as nn
 
 from src.models.VAE import VAE
-from src.utils.Config import Config
+from src.utils.Config import VaeConfig
 
 
 class BaselineSynthetic(VAE):
-    def __init__(self, config: Config):
+    def __init__(self, config: VaeConfig):
         super().__init__(
             config=config,
             layer=nn.Linear,
