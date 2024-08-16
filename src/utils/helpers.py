@@ -7,21 +7,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import torch
+from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from src.models.BaselineMnist import BaselineMnist
 from src.models.BaselineSynthetic import BaselineSynthetic
 from src.models.BitnetMnist import BitnetMnist
 from src.models.BitnetSynthetic import BitnetSynthetic
-from src.utils.Config import Config
+from src.models.ddpm import MLP
+from src.utils.Config import DdpmConfig, VaeConfig
 
 
 def plot_data(
-        data: DataLoader | torch.Tensor,
-        title="Input data",
-        x="Dimension 1",
-        y="Dimension 2",
-        path="data.png",
+    data: DataLoader | torch.Tensor,
+    title="Input data",
+    x="Dimension 1",
+    y="Dimension 2",
+    path="data.png",
 ):
     if isinstance(data, DataLoader):
         data = data.dataset.data.cpu().numpy()
@@ -40,20 +42,38 @@ def plot_data(
 
 
 def get_model(config):
-    model_name = config.model_name
+    if isinstance(config, VaeConfig):
+        if config.model_name == "baseline_synthetic":
+            model = BaselineSynthetic(config)
+        elif config.model_name == "bitnet_synthetic":
+            model = BitnetSynthetic(config)
+        elif config.model_name == "bitnet_mnist":
+            model = BitnetMnist(config)
+        elif config.model_name == "baseline_mnist":
+            model = BaselineMnist(config)
+        else:
+            raise ValueError(f"Model {config.model_name} is not supported")
+        return model
 
-    if model_name == "baseline_synthetic":
-        model = BaselineSynthetic(config)
-    elif model_name == "bitnet_synthetic":
-        model = BitnetSynthetic(config)
-    elif model_name == "bitnet_mnist":
-        model = BitnetMnist(config)
-    elif model_name == "baseline_mnist":
-        model = BaselineMnist(config)
+    elif isinstance(config, DdpmConfig):
+        model = MLP(
+            hidden_size=config.hidden_size,
+            hidden_layers=config.hidden_layers,
+            emb_size=config.embedding_size,
+            time_emb=config.time_embedding,
+            input_emb=config.input_embedding,
+        )
+        return model
+
     else:
-        raise ValueError(f"Model {model_name} is not supported")
+        raise ValueError(f"Model {config.model_name} is not supported")
 
-    return model
+
+def get_optimizer(model, config):
+    if isinstance(config, DdpmConfig):
+        return torch.optim.AdamW(model.parameters(), lr=config.learning_rate)
+    if isinstance(config, VaeConfig):
+        return Adam(model.parameters(), lr=config.learning_rate)
 
 
 def plot_bar(counts, values=None, path="weights.png"):
@@ -94,8 +114,8 @@ def plot_latent_space(model, config, scale=1.0, n=25, digit_size=28, figsize=15)
             x_decoded = model.decode(z_sample)
             digit = x_decoded[0].detach().cpu().reshape(digit_size, digit_size)
             figure[
-            i * digit_size: (i + 1) * digit_size,
-            j * digit_size: (j + 1) * digit_size,
+                i * digit_size : (i + 1) * digit_size,
+                j * digit_size : (j + 1) * digit_size,
             ] = digit
 
     plt.figure(figsize=(figsize, figsize))
@@ -129,7 +149,11 @@ def get_run_dir(config):
     """
     returns the run directory and creates it if it does not exist.
     """
-    run_dir = Path(f"runs/{config.run_id}")
+    run_dir = (
+        Path(f"runs/{config.run_id}")
+        if isinstance(config, VaeConfig)
+        else Path(f"runs/{config.experiment_name}")
+    )
     if not run_dir.exists():
         run_dir.mkdir(parents=True)
 
@@ -179,7 +203,7 @@ def init_logger(run_dir, log_level):
 
 
 def log_model_info(logger, config):
-    logging.debug("Model configuration: ")
+    logger.debug("Model configuration: ")
     logger.debug(config)
 
 
@@ -196,8 +220,15 @@ def plot_weight_distributions(model, plot_dir):
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description="Update YAML configuration.")
-    parser.add_argument(
+    parser = argparse.ArgumentParser(
+        description="Main entry point for training models or running experiments."
+    )
+
+    subparsers = parser.add_subparsers(dest="command", help="Choose a command to run")
+
+    # Train VAE model
+    parser_vae = subparsers.add_parser("train_vae", help="Train a VAE model")
+    parser_vae.add_argument(
         "--model_name",
         type=str,
         choices=[
@@ -208,17 +239,17 @@ def get_args():
         ],
         default="bitnet_synthetic",
     )
-    parser.add_argument("--batch_size", type=int, help="Batch size.")
-    parser.add_argument("--epochs", type=int, help="Number of epochs.")
-    parser.add_argument("--learning_rate", type=float, help="Learning rate.")
-    parser.add_argument("--latent_dim", type=int, help="Latent dimension.")
-    parser.add_argument(
+    parser_vae.add_argument("--batch_size", type=int, help="Batch size.")
+    parser_vae.add_argument("--epochs", type=int, help="Number of epochs.")
+    parser_vae.add_argument("--learning_rate", type=float, help="Learning rate.")
+    parser_vae.add_argument("--latent_dim", type=int, help="Latent dimension.")
+    parser_vae.add_argument(
         "--activation_layer",
         type=str,
         choices=["ReLU", "Sigmoid", "tanh"],
         default="ReLU",
     )
-    parser.add_argument(
+    parser_vae.add_argument(
         "--training_data",
         type=str,
         choices=[
@@ -233,36 +264,72 @@ def get_args():
         ],
         default="spiral",
     )
-    parser.add_argument(
+    parser_vae.add_argument(
         "--encoder_layers",
         type=int,
         nargs="+",
         help="array describing the encoder layer.",
     )
-    parser.add_argument(
+    parser_vae.add_argument(
         "--decoder_layers",
         type=int,
         nargs="+",
         help="array describing the decoder layer.",
     )
-
-    parser.add_argument("--run_id", help="id of the run.")
-
-    parser.add_argument("--norm", help="if it uses RMSNorm or not.")
-
-    parser.add_argument(
+    parser_vae.add_argument("--run_id", help="id of the run.")
+    parser_vae.add_argument("--norm", help="if it uses RMSNorm or not.")
+    parser_vae.add_argument(
         "--device",
         type=str,
         choices=["cpu", "cuda"],
         default="cpu",
         help="device to run the model.",
     )
-
-    parser.add_argument(
+    parser_vae.add_argument(
         "--saving_interval", type=int, help="Interval to save the model."
     )
+    parser_vae.add_argument(
+        "--log_level",
+        type=str,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
+        help="Log level for the logger.",
+    )
 
-    parser.add_argument(
+    parser_ddpm = subparsers.add_parser("train_ddpm", help="Train a DDPM model")
+    parser_ddpm.add_argument("--epochs", type=int, default=10, help="Number of epochs")
+    parser_ddpm.add_argument("--experiment_name", type=str, default="base")
+    parser_ddpm.add_argument(
+        "--dataset",
+        type=str,
+        default="dino",
+        choices=["circle", "dino", "line", "moons"],
+    )
+    parser_ddpm.add_argument("--train_batch_size", type=int, default=32)
+    parser_ddpm.add_argument("--eval_batch_size", type=int, default=1000)
+    parser_ddpm.add_argument("--num_epochs", type=int, default=200)
+    parser_ddpm.add_argument("--learning_rate", type=float, default=1e-3)
+    parser_ddpm.add_argument("--num_timesteps", type=int, default=50)
+    parser_ddpm.add_argument(
+        "--beta_schedule", type=str, default="linear", choices=["linear", "quadratic"]
+    )
+    parser_ddpm.add_argument("--embedding_size", type=int, default=128)
+    parser_ddpm.add_argument("--hidden_size", type=int, default=128)
+    parser_ddpm.add_argument("--hidden_layers", type=int, default=3)
+    parser_ddpm.add_argument(
+        "--time_embedding",
+        type=str,
+        default="sinusoidal",
+        choices=["sinusoidal", "learnable", "linear", "zero"],
+    )
+    parser_ddpm.add_argument(
+        "--input_embedding",
+        type=str,
+        default="sinusoidal",
+        choices=["sinusoidal", "learnable", "linear", "identity"],
+    )
+    parser_ddpm.add_argument("--save_images_step", type=int, default=1)
+    parser_ddpm.add_argument(
         "--log_level",
         type=str,
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
@@ -276,8 +343,11 @@ def get_args():
 
 def get_config(run_id):
     args = get_args()
-    config = Config()
+    config = VaeConfig()
     config.run_id = run_id
+
+    if args.command == "train_ddpm":
+        config = DdpmConfig()
 
     for arg in vars(args):
         if getattr(args, arg) is not None:

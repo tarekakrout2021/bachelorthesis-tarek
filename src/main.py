@@ -1,8 +1,7 @@
 # import shutil
-from data.make_dataset import get_data, plot_initial_data
+from data.make_dataset import get_data_loader
 from eval.evaluate import evaluate
-from torch.optim import Adam
-from train import train
+from train.train import train
 from utils.helpers import *
 
 
@@ -18,17 +17,15 @@ def main():
     logger.info(f"Run ID: {run_id}")
     print(run_id)
 
-    data = get_data(config)
-    if config.training_data != "mnist":
-        plot_initial_data(data, config)
+    data_loader = get_data_loader(config)
 
     model = get_model(config)
     logger.debug(model)
 
-    optimizer = Adam(model.parameters(), lr=config.learning_rate)
+    optimizer = get_optimizer(model, config)
 
-    train(model, optimizer, data, config, logger, run_dir)
-    evaluate(model, data, config, logger)
+    train(model, optimizer, data_loader, config, logger, run_dir)
+    evaluate(model, data_loader, config, logger, run_dir)
 
     log_model_info(logger, config)
 

@@ -1,5 +1,3 @@
-from typing import Any
-
 import numpy as np
 import pandas as pd
 import torch
@@ -8,7 +6,8 @@ from sklearn.datasets import make_moons
 from torch.utils.data import DataLoader, Dataset
 from torchvision.datasets import MNIST
 
-from src.utils.Config import Config
+from src.data import datasets
+from src.utils.Config import DdpmConfig, VaeConfig
 from src.utils.helpers import get_plot_dir, plot_data
 
 
@@ -23,8 +22,8 @@ class SyntheticDataset(Dataset):
         return self.data[idx]
 
 
-def get_data(config: Config):
-    def generate_gaussian_data(n_samples: int = 1000) -> DataLoader[Any]:
+def get_data_loader(config: VaeConfig | DdpmConfig) -> DataLoader:
+    def generate_gaussian_data(n_samples: int = 1000) -> DataLoader:
         mean = [0, 0]
         cov = [[1, 0], [0, 1]]
         data = np.random.multivariate_normal(mean, cov, n_samples)
@@ -34,7 +33,7 @@ def get_data(config: Config):
             shuffle=True,
         )
 
-    def generate_mixture_of_gaussians(n_samples: int = 15_000) -> DataLoader[Any]:
+    def generate_mixture_of_gaussians(n_samples: int = 15_000) -> DataLoader:
         mean1 = [0, 0]
         cov1 = [[1, 0], [0, 1]]
         data1 = np.random.multivariate_normal(mean1, cov1, n_samples // 3)
@@ -62,7 +61,7 @@ def get_data(config: Config):
             shuffle=True,
         )
 
-    def generate_anisotropic_single_gaussian(n_samples: int = 1000) -> DataLoader[Any]:
+    def generate_anisotropic_single_gaussian(n_samples: int = 1000) -> DataLoader:
         X = generate_gaussian_data(n_samples)
         transformation_matrix = np.array([[5, 0], [0, 2]])
         rot_mat = np.array(
@@ -76,9 +75,7 @@ def get_data(config: Config):
             shuffle=True,
         )
 
-    def generate_spiral_data(
-        n_samples: int = 10_000, noise: float = 0.5
-    ) -> DataLoader[Any]:
+    def generate_spiral_data(n_samples: int = 10_000, noise: float = 0.5) -> DataLoader:
         theta = np.sqrt(np.random.rand(n_samples)) * 2 * np.pi
         r = 2 * theta + noise * np.random.randn(n_samples)
         x = r * np.cos(theta)
@@ -91,9 +88,7 @@ def get_data(config: Config):
             shuffle=True,
         )
 
-    def generate_circles(
-        n_samples: int = 10_000, noise: float = 0.15
-    ) -> DataLoader[Any]:
+    def generate_circles(n_samples: int = 10_000, noise: float = 0.15) -> DataLoader:
         def circle(r, n):
             t = np.sqrt(np.random.rand(n)) * 2 * np.pi
             x = r * np.cos(t)
@@ -138,28 +133,39 @@ def get_data(config: Config):
         x = (x / 54 - 1) * 4
         y = (y / 48 - 1) * 4
         X = np.stack((x, y), axis=1)
-        return torch.tensor(torch.from_numpy(X.astype(np.float32)))
+        return DataLoader(
+            SyntheticDataset(torch.tensor(X.astype(np.float32))),
+            batch_size=config.batch_size,
+            shuffle=True,
+        )
 
-    if config.training_data == "normal":
-        return generate_gaussian_data()
-    elif config.training_data == "anisotropic":
-        return generate_anisotropic_single_gaussian()
-    elif config.training_data == "spiral":
-        return generate_spiral_data()
-    elif config.training_data == "mnist":
-        return mnist_data()
-    elif config.training_data == "mixture":
-        return generate_mixture_of_gaussians()
-    elif config.training_data == "moons":
-        return generate_moons()
-    elif config.training_data == "circles":
-        return generate_circles()
-    elif config.training_data == "dino":
-        return dino_dataset()
-    raise ValueError(f"Invalid data type {config.training_data}")
+    data_generators = {
+        "normal": generate_gaussian_data,
+        "anisotropic": generate_anisotropic_single_gaussian,
+        "spiral": generate_spiral_data,
+        "mnist": mnist_data,
+        "mixture": generate_mixture_of_gaussians,
+        "moons": generate_moons,
+        "circles": generate_circles,
+        "dino": dino_dataset,
+    }
+
+    if isinstance(config, VaeConfig):
+        try:
+            data_loader = data_generators[config.training_data]()
+            return data_loader
+        except KeyError:
+            raise ValueError(f"Invalid data type {config.training_data}")
+
+    elif isinstance(config, DdpmConfig):
+        dataset = datasets.get_dataset(config.dataset)
+        data_loader = DataLoader(
+            dataset, batch_size=config.train_batch_size, shuffle=True, drop_last=True
+        )
+        return data_loader
 
 
-def plot_initial_data(data_loader: DataLoader, config: Config) -> None:
+def plot_initial_data(data_loader: DataLoader, config: VaeConfig | DdpmConfig) -> None:
     plot_dir = get_plot_dir(config)
     plot_dir = plot_dir / "initial_data.png"
     plot_data(

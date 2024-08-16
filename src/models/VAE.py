@@ -9,13 +9,13 @@ from matplotlib import pyplot as plt
 
 from src.models.Bitlinear158 import BitLinear158, BitLinear158Inference
 from src.models.RMSNorm import RMSNorm
-from src.utils.Config import Config
+from src.utils.Config import VaeConfig
 
 
 class VAE(nn.Module):
     def __init__(
         self,
-        config: Config,
+        config: VaeConfig,
         layer: Type[nn.Linear] | Type[BitLinear158],
         input_dim: int = 2,
     ):
@@ -87,7 +87,7 @@ class VAE(nn.Module):
         self.device: torch.device = torch.device(config.device)
 
         self.mode: str = "training"
-        self.config: Config = config
+        self.config: VaeConfig = config
 
     def encode(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         x.to(self.device)
@@ -121,7 +121,7 @@ class VAE(nn.Module):
         x: torch.Tensor,
         mu: torch.Tensor,
         logvar: torch.Tensor,
-        config: Config,
+        config: VaeConfig,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         MSE: torch.Tensor = F.mse_loss(
             recon_x.to(config.device), x.to(config.device), reduction="sum"
@@ -134,7 +134,7 @@ class VAE(nn.Module):
         Replaces layers in network with inference layers and quantizes the weights.
         """
 
-        def plot_heatmap(weights, quantized_weights, name, config: Config):
+        def plot_heatmap(weights, quantized_weights, name, config: VaeConfig):
             """
             Plots the original weights and the quantized weights as heatmaps.
             """
@@ -179,9 +179,10 @@ class VAE(nn.Module):
                     setattr(module, name, new_layer)
 
                     # calculate the quantization error
-                    self.quantization_error += torch.abs(
-                        old_layer_weight - new_layer.weight.data
-                    ).sum().item() / old_layer_weight.numel()
+                    self.quantization_error += (
+                        torch.abs(old_layer_weight - new_layer.weight.data).sum().item()
+                        / old_layer_weight.numel()
+                    )
 
                     # Difference Plot
                     plot_heatmap(

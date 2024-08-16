@@ -5,6 +5,7 @@ from sklearn.datasets import make_moons
 from torch.utils.data import TensorDataset
 
 
+# TODO : some redundency in the code, need to refactor
 def moons_dataset(n=8000):
     X, _ = make_moons(n_samples=n, random_state=42, noise=0.03)
     X[:, 0] = (X[:, 0] + 0.3) * 2 - 1
@@ -38,7 +39,7 @@ def circle_dataset(n=8000):
 
 
 def dino_dataset(n=8000):
-    df = pd.read_csv("src/data/static/dino.tsv", sep="\t")
+    df = pd.read_csv("data/static/dino.tsv", sep="\t")
     df = df[df["dataset"] == "dino"]
 
     rng = np.random.default_rng(42)

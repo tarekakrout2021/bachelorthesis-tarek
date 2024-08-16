@@ -99,7 +99,7 @@ def synthetic_reconstruct_sample(data_loader, model, plot_dir):
     )
 
 
-def evaluate(model, data_loader, config, logger):
+def evaluate_vae(model, data_loader, config, logger):
     model_name = config.model_name
     PLOT_DIR = helpers.get_plot_dir(config)
 
@@ -150,3 +150,15 @@ def evaluate(model, data_loader, config, logger):
 
         # Inference mode
         weight_stats(model, model_name, PLOT_DIR, logger)
+
+
+def evaluate_ddpm(model, data_loader, config, logger, run_dir):
+    # does nothing for now ..
+    pass
+
+
+def evaluate(model, data_loader, config, logger, run_dir):
+    if isinstance(config, helpers.VaeConfig):
+        evaluate_vae(model, data_loader, config, logger)
+    elif isinstance(config, helpers.DdpmConfig):
+        evaluate_ddpm(model, data_loader, config, logger, run_dir)
