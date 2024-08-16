@@ -73,21 +73,23 @@ class ZeroEmbedding(nn.Module):
 
 
 class PositionalEmbedding(nn.Module):
-    def __init__(self, size: int, type: str, **kwargs):
+    def __init__(self, size: int, embedding_type: str, **kwargs):
         super().__init__()
 
-        if type == "sinusoidal":
+        self.layer: nn.Module
+
+        if embedding_type == "sinusoidal":
             self.layer = SinusoidalEmbedding(size, **kwargs)
-        elif type == "linear":
+        elif embedding_type == "linear":
             self.layer = LinearEmbedding(size, **kwargs)
-        elif type == "learnable":
+        elif embedding_type == "learnable":
             self.layer = LearnableEmbedding(size)
-        elif type == "zero":
+        elif embedding_type == "zero":
             self.layer = ZeroEmbedding()
-        elif type == "identity":
+        elif embedding_type == "identity":
             self.layer = IdentityEmbedding()
         else:
-            raise ValueError(f"Unknown positional embedding type: {type}")
+            raise ValueError(f"Unknown positional embedding type: {embedding_type}")
 
     def forward(self, x: torch.Tensor):
         return self.layer(x)

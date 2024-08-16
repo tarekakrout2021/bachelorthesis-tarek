@@ -1,3 +1,5 @@
+from typing import Callable, Dict
+
 import numpy as np
 import pandas as pd
 import torch
@@ -23,6 +25,17 @@ class SyntheticDataset(Dataset):
 
 
 def get_data_loader(config: VaeConfig | DdpmConfig) -> DataLoader:
+    if isinstance(config, VaeConfig):
+        return get_data_vae(config)
+    elif isinstance(config, DdpmConfig):
+        dataset = datasets.get_dataset(config.dataset)
+        data_loader = DataLoader(
+            dataset, batch_size=config.train_batch_size, shuffle=True, drop_last=True
+        )
+        return data_loader
+
+
+def get_data_vae(config: VaeConfig) -> DataLoader:
     def generate_gaussian_data(n_samples: int = 1000) -> DataLoader:
         mean = [0, 0]
         cov = [[1, 0], [0, 1]]
@@ -62,7 +75,9 @@ def get_data_loader(config: VaeConfig | DdpmConfig) -> DataLoader:
         )
 
     def generate_anisotropic_single_gaussian(n_samples: int = 1000) -> DataLoader:
-        X = generate_gaussian_data(n_samples)
+        data_loader = generate_gaussian_data(n_samples)
+        X: np.ndarray = data_loader.dataset.data.cpu().numpy()  # type: ignore
+
         transformation_matrix = np.array([[5, 0], [0, 2]])
         rot_mat = np.array(
             [[np.sqrt(2) / 2, -np.sqrt(2) / 2], [np.sqrt(2) / 2, np.sqrt(2) / 2]]
@@ -139,7 +154,9 @@ def get_data_loader(config: VaeConfig | DdpmConfig) -> DataLoader:
             shuffle=True,
         )
 
-    data_generators = {
+    DataGenerator = Callable[[], DataLoader]
+
+    data_generators: Dict[str, DataGenerator] = {
         "normal": generate_gaussian_data,
         "anisotropic": generate_anisotropic_single_gaussian,
         "spiral": generate_spiral_data,
@@ -150,19 +167,11 @@ def get_data_loader(config: VaeConfig | DdpmConfig) -> DataLoader:
         "dino": dino_dataset,
     }
 
-    if isinstance(config, VaeConfig):
-        try:
-            data_loader = data_generators[config.training_data]()
-            return data_loader
-        except KeyError:
-            raise ValueError(f"Invalid data type {config.training_data}")
-
-    elif isinstance(config, DdpmConfig):
-        dataset = datasets.get_dataset(config.dataset)
-        data_loader = DataLoader(
-            dataset, batch_size=config.train_batch_size, shuffle=True, drop_last=True
-        )
+    try:
+        data_loader = data_generators[config.training_data]()
         return data_loader
+    except KeyError:
+        raise ValueError(f"Invalid data type {config.training_data}")
 
 
 def plot_initial_data(data_loader: DataLoader, config: VaeConfig | DdpmConfig) -> None:

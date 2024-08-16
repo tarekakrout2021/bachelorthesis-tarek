@@ -19,14 +19,14 @@ from src.utils.Config import DdpmConfig, VaeConfig
 
 
 def plot_data(
-    data: DataLoader | torch.Tensor,
+    data,
     title="Input data",
     x="Dimension 1",
     y="Dimension 2",
     path="data.png",
 ):
     if isinstance(data, DataLoader):
-        data = data.dataset.data.cpu().numpy()
+        data = data.dataset.data.cpu().numpy()  # type: ignore
     if isinstance(data, torch.Tensor):
         data = data.cpu().numpy()
 
