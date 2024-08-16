@@ -132,8 +132,8 @@ def evaluate(model, data_loader, config, logger):
 
         # Sanity checks : Check whether all BitLinear layers are set to inference mode
         if "bitnet" in model_name:
-            assert model.mode == "inference"
             model.change_to_inference()
+            assert model.mode == "inference"
         else:
             model.eval()
 

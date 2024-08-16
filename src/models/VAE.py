@@ -35,6 +35,7 @@ class VAE(nn.Module):
         self.n_0: int = 0
         self.n_1: int = 0
         self.n_minus_1: int = 0
+        self.quantization_error: float = 0.0
 
         activation_layer: nn.Module = (
             nn.ReLU()
@@ -176,6 +177,11 @@ class VAE(nn.Module):
                     new_layer.weight.data = layer.weight.data.clone()
                     new_layer.beta = layer.beta
                     setattr(module, name, new_layer)
+
+                    # calculate the quantization error
+                    self.quantization_error += torch.abs(
+                        old_layer_weight - new_layer.weight.data
+                    ).sum().item() / old_layer_weight.numel()
 
                     # Difference Plot
                     plot_heatmap(

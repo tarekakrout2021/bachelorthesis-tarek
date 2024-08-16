@@ -1,12 +1,13 @@
 import copy
+import logging
 
 import numpy as np
 import torch
 
-from src.utils.helpers import get_plot_dir, plot_loss
+from src.utils.helpers import get_plot_dir, plot_loss, plot_data, plot_quantization_error
 
 
-def train(model, optimizer, data_loader, config, logger, run_dir):
+def train(model, optimizer, data_loader, config, logger, run_dir):  # run_dir was used in the torch.save function
     n_epochs = config.epochs
     model_name = config.model_name
     plot_dir = get_plot_dir(config)
@@ -14,7 +15,7 @@ def train(model, optimizer, data_loader, config, logger, run_dir):
     n_data = data_loader.dataset.data.shape[0]
     logger.debug(f"Number of data points: {n_data}")
 
-    mse_array, kl_array, training_array = np.array([]), np.array([]), np.array([])
+    mse_array, kl_array, training_array, quantization_array = (np.array([]),) * 4
     for epoch in range(n_epochs):
         model.train()
         train_loss = mse_loss = kl_loss = 0
@@ -23,7 +24,7 @@ def train(model, optimizer, data_loader, config, logger, run_dir):
                 x = data[0]
                 x = x.view(config.batch_size, 784).to(
                     model.device
-                )  # x_dim = 784
+                )  # x_dim = 784 = 28 * 28
                 data = x
             optimizer.zero_grad()
             data.to(model.device)
@@ -50,7 +51,11 @@ def train(model, optimizer, data_loader, config, logger, run_dir):
             tmp_model = copy.deepcopy(model)
             tmp_model.change_to_inference()
             tmp_model.eval()
-            torch.save(tmp_model.state_dict(), run_dir / f"model_epoch_{epoch}.pth")
+            quantization_array = np.append(quantization_array, tmp_model.quantization_error)
+            logger.info(f"Quantization error: {tmp_model.quantization_error}")
+            logger.info(f"Quantization array: {quantization_array}")
+            # torch.save(tmp_model.state_dict(), run_dir / f"model_epoch_{epoch}.pth")
 
     # Plot loss
     plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir)
+    plot_quantization_error(n_epochs, config.saving_interval, quantization_array, plot_dir)

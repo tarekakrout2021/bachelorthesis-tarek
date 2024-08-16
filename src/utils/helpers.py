@@ -17,11 +17,11 @@ from src.utils.Config import Config
 
 
 def plot_data(
-    data: DataLoader | torch.Tensor,
-    title="Input data",
-    x="Dimension 1",
-    y="Dimension 2",
-    path="data.png",
+        data: DataLoader | torch.Tensor,
+        title="Input data",
+        x="Dimension 1",
+        y="Dimension 2",
+        path="data.png",
 ):
     if isinstance(data, DataLoader):
         data = data.dataset.data.cpu().numpy()
@@ -94,8 +94,8 @@ def plot_latent_space(model, config, scale=1.0, n=25, digit_size=28, figsize=15)
             x_decoded = model.decode(z_sample)
             digit = x_decoded[0].detach().cpu().reshape(digit_size, digit_size)
             figure[
-                i * digit_size : (i + 1) * digit_size,
-                j * digit_size : (j + 1) * digit_size,
+            i * digit_size: (i + 1) * digit_size,
+            j * digit_size: (j + 1) * digit_size,
             ] = digit
 
     plt.figure(figsize=(figsize, figsize))
@@ -139,11 +139,24 @@ def get_run_dir(config):
 def plot_loss(n_epochs, mse_array, kl_array, training_array, plot_dir):
     epochs = np.arange(1, n_epochs + 1)
     plt.figure(figsize=(8, 6))
+    plt.grid(True)
     plt.plot(epochs, mse_array, label="Reconstruction Loss", color="blue")
-    plt.plot(epochs, -kl_array, label="KL Divergence", color="red")
+    plt.plot(epochs, kl_array, label="KL Divergence", color="red")
     plt.plot(epochs, training_array, label="Total Loss", color="black")
     plt.legend()
     plt.savefig(plot_dir / "losses.png")
+    plt.close()
+
+
+def plot_quantization_error(n_epochs, eval_interval, quant_array, plot_dir):
+    x_axis = np.arange(0, n_epochs, eval_interval)
+    if len(quant_array) > len(x_axis):
+        x_axis = np.append(x_axis, n_epochs)
+    plt.figure(figsize=(8, 6))
+    plt.grid(True)
+    plt.plot(x_axis, quant_array, label="Quantization error", color="blue")
+    plt.legend()
+    plt.savefig(plot_dir / "Quantization_error.png")
     plt.close()
 
 
