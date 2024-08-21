@@ -1,5 +1,6 @@
 import copy
 import os
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -96,6 +97,7 @@ def train_ddpm(model, optimizer, data_loader, config, logger, run_dir):
     global_step = 0
     frames = []
     losses = []
+    quantization_array = np.array([])
     logger.info("Training model...")
     for epoch in range(config.num_epochs):
         model.train()
@@ -139,6 +141,10 @@ def train_ddpm(model, optimizer, data_loader, config, logger, run_dir):
                 sample = noise_scheduler.step(residual, t[0], sample)
             frames.append(sample.numpy())
 
+            quantization_array = np.append(
+                quantization_array, tmp_model.quantization_error
+            )
+
     logger.debug(model)
     model.eval()
     model.change_to_inference()
@@ -160,6 +166,10 @@ def train_ddpm(model, optimizer, data_loader, config, logger, run_dir):
         plt.ylim(-6, 6)
         plt.savefig(f"{imgdir}/{i:04}.png")
         plt.close()
+
+    plot_quantization_error(
+        config.num_epochs, config.save_images_step, quantization_array, Path(outdir)
+    )
 
     logger.info("Saving loss as numpy array...")
     np.save(f"{outdir}/loss.npy", np.array(losses))
