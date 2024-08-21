@@ -32,6 +32,8 @@ class MLP(nn.Module):
     ):
         super().__init__()
 
+        self.quantization_error: float = 0.0
+
         self.time_mlp = PositionalEmbedding(emb_size, time_emb)
         self.input_mlp1 = PositionalEmbedding(emb_size, input_emb, scale=25.0)
         self.input_mlp2 = PositionalEmbedding(emb_size, input_emb, scale=25.0)
@@ -103,6 +105,12 @@ class MLP(nn.Module):
                     new_layer.weight.data = layer.weight.data.clone()
                     new_layer.beta = layer.beta
                     setattr(module, name, new_layer)
+
+                    # calculate the quantization error
+                    self.quantization_error += (
+                        torch.abs(old_layer_weight - new_layer.weight.data).sum().item()
+                        / old_layer_weight.numel()
+                    )
 
                     # Difference Plot
                     plot_heatmap(
