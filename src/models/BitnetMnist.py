@@ -20,8 +20,10 @@ class BitnetMnist(VAE):
         Sample from p(z) and decode.
         """
         with torch.no_grad():
-            z = torch.randn(n_samples, self.latent_dim).to("cpu")  # Sample from N(0, I)
-            self.to("cpu")
+            z = torch.randn(n_samples, self.latent_dim).to(
+                self.config.device
+            )  # Sample from N(0, I)
+            # self.to(self.config.device)
             sampled_data = self.decode(z).cpu()
 
         sampled_data = sampled_data.view(n_samples, 28, 28)

@@ -87,6 +87,7 @@ def train_vae(
     plot_quantization_error(
         n_epochs, config.saving_interval, quantization_array, plot_dir
     )
+    torch.save(model.state_dict(), run_dir / f"model.pth")
 
 
 def train_ddpm(model, optimizer, data_loader, config, logger, run_dir):
