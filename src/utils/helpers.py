@@ -208,15 +208,20 @@ def log_model_info(logger, config):
 
 
 def plot_weight_distributions(model, plot_dir):
+    combined_weights = []
     for name, param in model.named_parameters():
         if "weight" in name:  # filter out biases or other parameters
-            plt.figure(figsize=(8, 6))
-            sns.histplot(param.data.cpu().numpy().flatten(), bins=50, kde=True)
-            plt.title(f"Weight Distribution of {name}")
-            plt.xlabel("Weight values")
-            plt.ylabel("Frequency")
-            plt.savefig(plot_dir / "weight_distribution.png")
-            plt.close()
+            combined_weights.append(param.data.cpu().numpy().flatten())
+
+    combined_weights = np.concatenate(combined_weights)
+    plt.figure(figsize=(8, 6))
+    sns.histplot(combined_weights, bins=50, kde=True)
+    plt.title(f"Weight Distribution")
+    plt.xlabel("Weight values")
+    plt.ylabel("Frequency")
+    plt.xlim(-1.5, 1.5)
+    plt.savefig(plot_dir / "weight_distribution.png")
+    plt.close()
 
 
 def get_args():

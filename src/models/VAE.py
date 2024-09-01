@@ -53,11 +53,12 @@ class VAE(nn.Module):
             activation_layer,
         ]
         if config.norm == "RMSNorm":
-            layers.append(RMSNorm(self.encoder_layers[0]))
+            layers.insert(0, RMSNorm(input_dim))
+
         for i in range(1, len(self.encoder_layers)):
-            layers.append(layer(self.encoder_layers[i - 1], self.encoder_layers[i]))
             if config.norm == "RMSNorm":
-                layers.append(RMSNorm(self.encoder_layers[i]))
+                layers.append(RMSNorm(self.encoder_layers[i-1]))
+            layers.append(layer(self.encoder_layers[i - 1], self.encoder_layers[i]))
             layers.append(activation_layer)
         self.encoder: nn.Sequential = nn.Sequential(*layers)
 
@@ -74,11 +75,11 @@ class VAE(nn.Module):
             activation_layer,
         ]
         if config.norm == "RMSNorm":
-            layers.append(RMSNorm(self.decoder_layers[0]))
+            layers.insert(0, RMSNorm(self.latent_dim))
         for i in range(1, len(self.decoder_layers)):
-            layers.append(layer(self.decoder_layers[i - 1], self.decoder_layers[i]))
             if config.norm == "RMSNorm":
-                layers.append(RMSNorm(self.decoder_layers[i]))
+                layers.append(RMSNorm(self.decoder_layers[i - 1]))
+            layers.append(layer(self.decoder_layers[i - 1], self.decoder_layers[i]))
             layers.append(activation_layer)
         layers.append(layer(self.decoder_layers[-1], input_dim))
         self.decoder: nn.Sequential = nn.Sequential(*layers)
