@@ -30,9 +30,7 @@ test_loader = torch.utils.data.DataLoader(
 y_pred_1 = []
 y_pred_2 = []
 y_true = []
-TP = 0
-FP = 0
-FN = 0
+
 with torch.no_grad():
     for data, target in test_loader:
         # prediction on the test_data
@@ -53,8 +51,8 @@ with torch.no_grad():
 
 print("precision of the classifier ", precision_score(y_true, y_pred_1, average='micro'))
 
-print("precision score:", precision_score(y_pred_1, y_pred_2, average='micro'))
-print("recall score:", recall_score(y_pred_1, y_pred_2, average='micro'))
+print("precision score:", precision_score(y_true, y_pred_2, average='micro'))
+print("recall score:", recall_score(y_true, y_pred_2, average='micro'))
 print(f1_score(y_pred_1, y_pred_2, average=None))
 print(f1_score(y_pred_1, y_pred_2, average='micro'))
 print(f1_score(y_pred_1, y_pred_2, average='macro'))
