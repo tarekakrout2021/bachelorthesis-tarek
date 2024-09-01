@@ -359,3 +359,39 @@ def get_config(run_id):
             setattr(config, arg, getattr(args, arg))
 
     return config
+
+
+def load_model(model_name: str):
+    if model_name == "baseline_mnist":
+        model_path = '../runs/baseline_mnist_ref_8/model.pth'
+        model_state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        config = VaeConfig(
+            model_name="baseline_mnist",
+            latent_dim=8,
+            encoder_layers=[512, 256],
+            decoder_layers=[256, 512],
+            activation_layer="ReLU",
+            learning_rate=0.001,
+            training_data="mnist"
+        )
+        model = BaselineMnist(config)
+        model.load_state_dict(model_state_dict)
+        model.eval()
+        return model
+    elif model_name == "bitnet_mnist":
+        model_path = '../runs/bitnet_mnist_39_new/model.pth'
+        model_state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        config = VaeConfig(
+            model_name="bitnet_mnist",
+            latent_dim=32,
+            encoder_layers=[512, 256],
+            decoder_layers=[256, 512],
+            activation_layer="ReLU",
+            learning_rate=0.001,
+            training_data="mnist",
+            norm='RMSNorm'
+        )
+        model = BitnetMnist(config)
+        model.load_state_dict(model_state_dict)
+        model.eval()
+        return model
