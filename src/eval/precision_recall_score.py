@@ -1,60 +1,68 @@
+import sys
+
+import numpy as np
 import torch
 import torchvision
 
 from classifier import Net
-from sklearn.metrics import f1_score, multilabel_confusion_matrix, precision_score, recall_score
-
 from src.utils.helpers import load_model
 
-# init classifier
-classifier_path = 'classifier.pth'
-classifier_state_dict = torch.load(classifier_path, map_location=torch.device('cpu'))
-classifier_model = Net()
-classifier_model.eval()
-classifier_model.load_state_dict(classifier_state_dict)
+
+def init_classifier() -> Net:
+    classifier_path = 'classifier.pth'
+    classifier_state_dict = torch.load(classifier_path, map_location=torch.device('cpu'))
+    classifier_model = Net()
+    classifier_model.eval()
+    classifier_model.load_state_dict(classifier_state_dict)
+    return classifier_model
 
 
-# load model
-model = load_model('bitnet_mnist')
-# model = load_model('baseline_mnist')
+def main(*args):
+    # init classifier
+    classifier_model = init_classifier()
 
-test_loader = torch.utils.data.DataLoader(
-    torchvision.datasets.MNIST('./', train=False, download=True,
-                               transform=torchvision.transforms.Compose([
-                                   torchvision.transforms.ToTensor(),
-                                   torchvision.transforms.Normalize(
-                                       (0.1307,), (0.3081,))
-                               ])),
-    batch_size=1000, shuffle=True)
+    # load model
+    model = load_model('bitnet_mnist')
+    if args and args[0] == 'baseline':
+        model = load_model('baseline_mnist')
 
-y_pred_1 = []
-y_pred_2 = []
-y_true = []
+    # load test data
+    test_loader = torch.utils.data.DataLoader(
+        torchvision.datasets.MNIST('./', train=False, download=True,
+                                   transform=torchvision.transforms.Compose([
+                                       torchvision.transforms.ToTensor(),
+                                       torchvision.transforms.Normalize(
+                                           (0.1307,), (0.3081,))
+                                   ])),
+        batch_size=1000, shuffle=True)
 
-with torch.no_grad():
-    for data, target in test_loader:
-        # prediction on the test_data
-        output1 = classifier_model(data)
-        pred1 = output1.data.max(1, keepdim=True)[1]  # get index/label of the max element in the second dim
-        y_pred_1 += pred1
+    pred_original = np.array([])
+    pred_recon = np.array([])
+    true_labels = np.array([])
 
-        # true labels
-        y_true += target.data.view_as(pred1)
+    with torch.no_grad():
+        for data, target in test_loader:
+            # prediction on the test_data
+            output1 = classifier_model(data)  # output1 shape (btach_size, 10)
+            pred1 = output1.data.max(1, keepdim=True)[1].reshape(
+                1000)  # get index/label of the max element in the second dim
+            pred_original = np.append(pred_original, np.round(pred1))
 
-        # prediction on the reconstructed data
-        x = data.view(1000, 784).to(model.device)
-        recon_x, mu, logvar = model(x)
-        recon_x = recon_x.detach().cpu().reshape(1000, 1, 28, 28)
-        output2 = classifier_model(recon_x)
-        pred2 = output2.data.max(1, keepdim=True)[1]
-        y_pred_2 += pred2
+            # true labels
+            true_labels = np.append(true_labels, target.data.view_as(pred1))
 
-print("precision of the classifier ", precision_score(y_true, y_pred_1, average='micro'))
+            # prediction on the reconstructed data
+            x = data.view(1000, 784).to(model.device)  # batch_size is 1000 and each image is 28x28
+            recon_x, mu, logvar = model(x)
+            recon_x = recon_x.detach().cpu().reshape(1000, 1, 28, 28)
+            output2 = classifier_model(recon_x)
+            pred2 = output2.data.max(1, keepdim=True)[1].reshape(1000)
+            pred_recon = np.append(pred_recon, np.round(pred2))
 
-print("precision score:", precision_score(y_true, y_pred_2, average='micro'))
-print("recall score:", recall_score(y_true, y_pred_2, average='micro'))
-print(f1_score(y_pred_1, y_pred_2, average=None))
-print(f1_score(y_pred_1, y_pred_2, average='micro'))
-print(f1_score(y_pred_1, y_pred_2, average='macro'))
-print(f1_score(y_pred_1, y_pred_2, average='weighted'))
-print(multilabel_confusion_matrix(y_pred_1, y_pred_2))
+    print("precision of the classifier ", np.mean([pred_original == true_labels]))
+
+    print("precision score:", np.mean([pred_original == pred_recon]))
+
+
+if __name__ == '__main__':
+    main(*sys.argv[1:])
