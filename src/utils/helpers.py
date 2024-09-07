@@ -14,6 +14,7 @@ from src.models.BaselineMnist import BaselineMnist
 from src.models.BaselineSynthetic import BaselineSynthetic
 from src.models.BitnetMnist import BitnetMnist
 from src.models.BitnetSynthetic import BitnetSynthetic
+from src.models.VAE import VAE
 from src.models.ddpm import MLP
 from src.utils.Config import DdpmConfig, VaeConfig
 
@@ -361,7 +362,7 @@ def get_config(run_id):
     return config
 
 
-def load_model(model_name: str):
+def load_model(model_name: str) -> VAE:
     if model_name == "baseline_mnist":
         model_path = '../runs/baseline_mnist_ref_8/model.pth'
         model_state_dict = torch.load(model_path, map_location=torch.device('cpu'))
