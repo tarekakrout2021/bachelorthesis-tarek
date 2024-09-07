@@ -36,9 +36,7 @@ def main(*args):
                                    ])),
         batch_size=1000, shuffle=True)
 
-    pred_original = np.array([])
-    pred_recon = np.array([])
-    true_labels = np.array([])
+    pred_original, pred_recon, true_labels = [], [], []
 
     with torch.no_grad():
         for data, target in test_loader:
@@ -46,10 +44,10 @@ def main(*args):
             output1 = classifier_model(data)  # output1 shape (btach_size, 10)
             pred1 = output1.data.max(1, keepdim=True)[1].reshape(
                 1000)  # get index/label of the max element in the second dim
-            pred_original = np.append(pred_original, np.round(pred1))
+            pred_original.extend(np.round(pred1))
 
             # true labels
-            true_labels = np.append(true_labels, target.data.view_as(pred1))
+            true_labels.extend(target.data.view_as(pred1))
 
             # prediction on the reconstructed data
             x = data.view(1000, 784).to(model.device)  # batch_size is 1000 and each image is 28x28
@@ -57,8 +55,10 @@ def main(*args):
             recon_x = recon_x.detach().cpu().reshape(1000, 1, 28, 28)
             output2 = classifier_model(recon_x)
             pred2 = output2.data.max(1, keepdim=True)[1].reshape(1000)
-            pred_recon = np.append(pred_recon, np.round(pred2))
+            pred_recon.extend(np.round(pred2))
 
+    pred_original = np.array(pred_original)
+    pred_recon = np.array(pred_recon)
     print("precision of the classifier ", np.mean([pred_original == true_labels]))
 
     print("precision score:", np.mean([pred_original == pred_recon]))
