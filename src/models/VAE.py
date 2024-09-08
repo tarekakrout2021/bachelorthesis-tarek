@@ -57,7 +57,7 @@ class VAE(nn.Module):
 
         for i in range(1, len(self.encoder_layers)):
             if config.norm == "RMSNorm":
-                layers.append(RMSNorm(self.encoder_layers[i-1]))
+                layers.append(RMSNorm(self.encoder_layers[i - 1]))
             layers.append(layer(self.encoder_layers[i - 1], self.encoder_layers[i]))
             layers.append(activation_layer)
         self.encoder: nn.Sequential = nn.Sequential(*layers)

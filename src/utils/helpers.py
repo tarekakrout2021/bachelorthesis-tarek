@@ -14,8 +14,8 @@ from src.models.BaselineMnist import BaselineMnist
 from src.models.BaselineSynthetic import BaselineSynthetic
 from src.models.BitnetMnist import BitnetMnist
 from src.models.BitnetSynthetic import BitnetSynthetic
-from src.models.VAE import VAE
 from src.models.ddpm import MLP
+from src.models.VAE import VAE
 from src.utils.Config import DdpmConfig, VaeConfig
 
 
@@ -364,8 +364,8 @@ def get_config(run_id):
 
 def load_model(model_name: str) -> VAE:
     if model_name == "baseline_mnist":
-        model_path = '../runs/baseline_mnist_ref_8/model.pth'
-        model_state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        model_path = "../runs/baseline_mnist_ref_8/model.pth"
+        model_state_dict = torch.load(model_path, map_location=torch.device("cpu"))
         config = VaeConfig(
             model_name="baseline_mnist",
             latent_dim=8,
@@ -373,15 +373,15 @@ def load_model(model_name: str) -> VAE:
             decoder_layers=[256, 512],
             activation_layer="ReLU",
             learning_rate=0.001,
-            training_data="mnist"
+            training_data="mnist",
         )
         model = BaselineMnist(config)
         model.load_state_dict(model_state_dict)
         model.eval()
         return model
     elif model_name == "bitnet_mnist":
-        model_path = '../runs/bitnet_mnist_39_new/model.pth'
-        model_state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        model_path = "../runs/bitnet_mnist_39_new/model.pth"
+        model_state_dict = torch.load(model_path, map_location=torch.device("cpu"))
         config = VaeConfig(
             model_name="bitnet_mnist",
             latent_dim=32,
@@ -390,7 +390,7 @@ def load_model(model_name: str) -> VAE:
             activation_layer="ReLU",
             learning_rate=0.001,
             training_data="mnist",
-            norm='RMSNorm'
+            norm="RMSNorm",
         )
         model = BitnetMnist(config)
         model.load_state_dict(model_state_dict)

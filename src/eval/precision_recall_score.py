@@ -5,23 +5,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torchvision
-
 from classifier import Net
+
 from src.models.BitnetMnist import BitnetMnist
 from src.models.VAE import VAE
 from src.utils.helpers import load_model
 
 
 def init_classifier() -> Net:
-    classifier_path = 'classifier.pth'
-    classifier_state_dict = torch.load(classifier_path, map_location=torch.device('cpu'))
+    classifier_path = "classifier.pth"
+    classifier_state_dict = torch.load(
+        classifier_path, map_location=torch.device("cpu")
+    )
     classifier_model = Net()
     classifier_model.eval()
     classifier_model.load_state_dict(classifier_state_dict)
     return classifier_model
 
 
-def calculate_precision(classifier_model: Net, vae_model: VAE, test_loader, plot_dir: Path):
+def calculate_conditional_precision(
+    classifier_model: Net, vae_model: VAE, test_loader, plot_dir: Path
+):
     """
     Compares the output of the classifier on the original data and the reconstructed data.
     Do the reconstructed samples resemble the original ones?
@@ -34,14 +38,17 @@ def calculate_precision(classifier_model: Net, vae_model: VAE, test_loader, plot
             # prediction on the test_data
             output1 = classifier_model(data)  # output1 shape (btach_size, 10)
             pred1 = output1.data.max(1, keepdim=True)[1].reshape(
-                1000)  # get index/label of the max element in the second dim
+                1000
+            )  # get index/label of the max element in the second dim
             pred_original.extend(np.round(pred1))
 
             # true labels
             true_labels.extend(target.data.view_as(pred1))
 
             # prediction on the reconstructed data
-            x = data.view(1000, 784).to(vae_model.device)  # batch_size is 1000 and each image is 28x28
+            x = data.view(1000, 784).to(
+                vae_model.device
+            )  # batch_size is 1000 and each image is 28x28
             recon_x, mu, logvar = vae_model(x)
             recon_x = recon_x.detach().cpu().reshape(1000, 1, 28, 28)
             output2 = classifier_model(recon_x)
@@ -51,8 +58,14 @@ def calculate_precision(classifier_model: Net, vae_model: VAE, test_loader, plot
     for label1, label2 in zip(true_labels, pred_original):
         plot_data_init[label1] += 1
         plot_data_recon[label2] += 1
-    plot_distribution(plot_data_init, 'Initial data  distribution', plot_dir)
-    plot_distribution(plot_data_recon, 'Reconstructed data distribution', plot_dir)
+
+    model_name = "bitnet" if isinstance(vae_model, BitnetMnist) else "baseline"
+    plot_distribution(
+        plot_data_init, f"Initial data distribution using {model_name}", plot_dir
+    )
+    plot_distribution(
+        plot_data_recon, f"Reconstructed data distribution using {model_name}", plot_dir
+    )
 
     pred_original = np.array(pred_original)
     pred_recon = np.array(pred_recon)
@@ -71,8 +84,9 @@ def plot_distribution(freq: list, title: str, plot_dir: Path = None):
     plt.close()
 
 
-def plot_data_for_recall(classifier_model: Net, vae_model: VAE, test_loader,
-                         number: int, plot_eval_dir: Path):
+def plot_data_for_conditional_recall(
+    classifier_model: Net, vae_model: VAE, test_loader, number: int, plot_dir: Path
+):
     """
     plots images that got classified as <number> after reconstruction
     """
@@ -81,7 +95,9 @@ def plot_data_for_recall(classifier_model: Net, vae_model: VAE, test_loader,
     with torch.no_grad():
         for data, target in test_loader:
             # prediction on the reconstructed data
-            x = data.view(1000, 784).to(vae_model.device)  # batch_size is 1000 and each image is 28x28
+            x = data.view(1000, 784).to(
+                vae_model.device
+            )  # batch_size is 1000 and each image is 28x28
             recon_x, mu, logvar = vae_model(x)
             recon_x = recon_x.detach().cpu().reshape(1000, 1, 28, 28)
             output2 = classifier_model(recon_x)
@@ -92,7 +108,7 @@ def plot_data_for_recall(classifier_model: Net, vae_model: VAE, test_loader,
     for i in range(10):
         plt.imshow(recon_images[i][0], cmap="gray")
         model_name = "bitnet" if isinstance(vae_model, BitnetMnist) else "baseline"
-        number_dir = Path(plot_eval_dir / f"reconstruction_of_{number}_{model_name}/")
+        number_dir = Path(plot_dir / f"recon_classified_as_{number}_{model_name}/")
         if not number_dir.exists():
             number_dir.mkdir()
         plt.savefig(number_dir / f"recon_{i}.png")
@@ -102,32 +118,59 @@ def plot_data_for_recall(classifier_model: Net, vae_model: VAE, test_loader,
         plt.close()
 
 
+def unconditional_recall(classifier_model: Net, vae_model: VAE):
+    freq = [0] * 10
+    generated_samples = vae_model.sample(n_samples=1000)
+    generated_samples = generated_samples.cpu().reshape(1000, 1, 28, 28)
+    output = classifier_model(generated_samples)
+    pred = output.data.max(1, keepdim=True)[1].reshape(1000)
+    for label in pred:
+        freq[label] += 1
+    plot_distribution(freq, "Unconditional sampling distribution", plot_eval_dir)
+
+
+def load_mnist_test_data() -> torch.utils.data.DataLoader:
+    test_loader = torch.utils.data.DataLoader(
+        torchvision.datasets.MNIST(
+            "./",
+            train=False,
+            download=True,
+            transform=torchvision.transforms.Compose(
+                [
+                    torchvision.transforms.ToTensor(),
+                    torchvision.transforms.Normalize((0.1307,), (0.3081,)),
+                ]
+            ),
+        ),
+        batch_size=1000,
+        shuffle=True,
+    )
+    return test_loader
+
+
 def main(plot_dir: Path, *args):
     # init classifier
     classifier_model = init_classifier()
 
     # load model
-    model = load_model('bitnet_mnist')
-    if args and args[0] == 'baseline':
-        model = load_model('baseline_mnist')
+    model = load_model("bitnet_mnist")
+    if args and args[0] == "baseline":
+        model = load_model("baseline_mnist")
 
     # load test data
-    test_loader = torch.utils.data.DataLoader(
-        torchvision.datasets.MNIST('./', train=False, download=True,
-                                   transform=torchvision.transforms.Compose([
-                                       torchvision.transforms.ToTensor(),
-                                       torchvision.transforms.Normalize(
-                                           (0.1307,), (0.3081,))
-                                   ])),
-        batch_size=1000, shuffle=True)
-    calculate_precision(classifier_model, model, test_loader, plot_dir)
+    test_loader = load_mnist_test_data()
+    unconditional_recall(classifier_model, model)
+
+    calculate_conditional_precision(classifier_model, model, test_loader, plot_dir)
     test_loader.dataset.data = test_loader.dataset.data[:1000]
-    for i in range(9):
-        plot_data_for_recall(classifier_model, model, test_loader, i, plot_dir)
+    for i in range(10):
+        plot_data_for_conditional_recall(
+            classifier_model, model, test_loader, i, plot_dir
+        )
 
 
-if __name__ == '__main__':
-    plot_eval_dir = Path('eval_plots')
+if __name__ == "__main__":
+    plot_eval_dir = Path("eval_plots")
     if not plot_eval_dir.exists():
         plot_eval_dir.mkdir()
     main(plot_eval_dir, *sys.argv[1:])

@@ -120,13 +120,12 @@ def get_data_vae(config: VaeConfig) -> DataLoader:
         )
 
     def mnist_data() -> DataLoader:
-        # create a transform to apply to each datapoint
         transform = transforms.Compose([transforms.ToTensor()])
 
         # download the MNIST datasets
         path = "~/datasets"
         train_dataset = MNIST(path, transform=transform, download=True)
-
+        # train_dataset.data = train_dataset.data.float() / 255.0
         # create train dataloaders
         train_loader = DataLoader(
             dataset=train_dataset, batch_size=config.batch_size, shuffle=True
