@@ -152,12 +152,12 @@ class VAE(nn.Module):
             name = "\n".join(
                 textwrap.wrap(name, width=40)
             )  # Adjust the width as needed
-            plt.title(f"Non-Quantized Weights Layer \n {name}")
+            plt.title(f"Non-Quantized Weights Layer \n {name}", fontsize=20)
 
             plt.subplot(1, 2, 2)
             plt.imshow(quantized_weights.to("cpu"), cmap="viridis")
             plt.colorbar()
-            plt.title(f"Quantized Weights Layer \n {name}")
+            plt.title(f"Quantized Weights Layer \n {name}", fontsize=20)
 
             plt.savefig(plot_dir / f"layer_{name}.png")
             plt.close()

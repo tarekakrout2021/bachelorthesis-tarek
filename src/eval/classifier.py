@@ -96,7 +96,7 @@ if __name__ == "__main__":
         plt.subplot(2, 3, i + 1)
         plt.tight_layout()
         plt.imshow(example_data[i][0], cmap="gray", interpolation="none")
-        plt.title("Ground Truth: {}".format(example_targets[i]))
+        plt.title("Ground Truth: {}".format(example_targets[i]), fontsize=20)
         plt.xticks([])
         plt.yticks([])
     fig

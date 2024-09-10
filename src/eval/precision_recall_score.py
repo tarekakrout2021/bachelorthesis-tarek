@@ -79,7 +79,7 @@ def plot_distribution(freq: list, title: str, plot_dir: Path = None):
     plots the frequency of each digit in the original and the reconstructed dataset
     """
     plt.bar([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], freq)
-    plt.title(title)
+    plt.title(title, fontsize=20)
     plt.savefig(plot_dir / f"{title}.png")
     plt.close()
 
@@ -170,7 +170,7 @@ def main(plot_dir: Path, *args):
 
 
 if __name__ == "__main__":
-    plot_eval_dir = Path("eval_plots")
+    plot_eval_dir = Path("precision_recall_plots_baseline")
     if not plot_eval_dir.exists():
         plot_eval_dir.mkdir()
     main(plot_eval_dir, *sys.argv[1:])
