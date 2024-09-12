@@ -1,77 +1,51 @@
 import torch
-import torch.nn.functional as F
+from torch.distributions import MultivariateNormal
+from torch.utils.data import DataLoader, TensorDataset
 from torchvision import transforms
 from torchvision.datasets import MNIST
 
 from src.utils.helpers import load_model
 
 
-def compute_log_likelihood(vae, x, num_samples=5000):
-    batch_size = x.size(0)
+def compute_log_likelihood(vae, x):
+    total_log_likelihood = 0
+    total_samples = 0
+    for x_batch in x:
+        x_batch = x_batch[0].reshape(-1, 784)
+        batch_size = x_batch.size(0)
 
-    # Flatten the input image x (because the decoder outputs a flat image)
-    x_flat = x.view(batch_size, -1).float()
-
-    mu, log_var = vae.encode(x)
-    std = torch.exp(0.5 * log_var)
-
-    # For Monte Carlo, draw `num_samples` samples from q(z|x)
-    logs = []
-
-    for _ in range(num_samples):
-        # Sample z_i from q(z|x) using reparameterization
+        mu, log_var = vae.encode(x_batch)
+        std = torch.exp(0.5 * log_var)
         eps = torch.randn_like(std)
         z = mu + eps * std
+        x_sampled = vae.decode(z)
 
-        # Compute p(x|z_i) for the current z
-        recon_x = vae.decode(z).float()  # Forward pass through the decoder
+        px_given_z = MultivariateNormal(x_sampled, torch.eye(x_sampled.shape[-1]))
 
-        # Reconstruction likelihood p(x|z)
-        recon_x_flat = recon_x.view(batch_size, -1)
+        log_likelihood = px_given_z.log_prob(x_batch).mean().item()
 
-        # Compute the log likelihood log p(x|z). Using BCE because the data is Bernoulli distributed
-        log_px_given_z = -F.binary_cross_entropy(
-            recon_x_flat, x_flat, reduction="none"
-        ).sum(dim=1)  # Sum over pixels
+        total_log_likelihood += log_likelihood * batch_size
+        total_samples += batch_size
 
-        # Compute log p(z_i), which is N(0, I)
-        log_pz = -0.5 * torch.sum(
-            z.pow(2) + torch.log(torch.tensor(2 * torch.pi)), dim=1
-        )
-
-        # Compute q(z_i|x) log probability
-        log_qz_given_x = -0.5 * torch.sum(
-            (z - mu).pow(2) / std.pow(2)
-            + log_var
-            + torch.log(torch.tensor([2 * torch.pi])),
-            dim=1,
-        )
-
-        log = log_px_given_z + log_pz - log_qz_given_x
-        logs.append(log)
-
-    # Convert list to tensor: Shape: [batch_size, num_samples]
-    logs_tensor = torch.stack(logs, dim=1)
-
-    # Compute log p(x) using log-sum-exp trick for numerical stability
-    log_likelihood = torch.logsumexp(logs_tensor, dim=1) - torch.log(
-        torch.tensor(num_samples, dtype=torch.float)
-    )
-
-    return log_likelihood.mean()
+    average_log_likelihood = total_log_likelihood / total_samples
+    return average_log_likelihood
 
 
 if __name__ == "__main__":
-    vae_model = load_model("bitnet_mnist")
-    transform = transforms.Compose(
-        [
-            transforms.ToTensor(),
-        ]
-    )
-    test_dataset = (
-        MNIST(root="./data", train=False, transform=transform, download=True).data
-        / 255.0
-    )
-    x = test_dataset.data[:1000].reshape(-1, 784)
-    ret = compute_log_likelihood(vae_model, x, num_samples=100)
-    print(ret)
+    models = ["baseline_mnist", "bitnet_mnist"]
+    for model in models:
+        vae_model = load_model(model)
+        transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+            ]
+        )
+        test_dataset = (
+                MNIST(root="./data", train=False, transform=transform, download=True).data
+                / 255.0
+        )
+        x = test_dataset.data[:1000]
+        x = DataLoader(TensorDataset(x), batch_size=100, shuffle=False)
+
+        log_likelihood = compute_log_likelihood(vae_model, x)
+        print(f"{model}: log-likelihood: {log_likelihood}")
