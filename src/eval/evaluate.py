@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+from src.models.BitnetSyntheticProbabilistic import BitnetSyntheticProbabilistic
 from src.utils import helpers
 
 
@@ -84,19 +85,37 @@ def synthetic_sample_from_prior(model, plot_dir, n_samples=1000):
 
 def synthetic_reconstruct_sample(data_loader, model, plot_dir):
     reconstructed_data = []
-    for data in data_loader:
-        mu, logvar = model.encode_latent(data)
-        z = model.reparameterize(mu, logvar)
-        reconstructions = model.decode(z)
-        reconstructed_data.append(reconstructions.detach().cpu().numpy())
-    reconstructed_data = np.concatenate(reconstructed_data, 0)
-    helpers.plot_data(
-        torch.tensor(reconstructed_data),
-        title="Inference: Reconstruction",
-        x="Dimension 1",
-        y="Dimension 2",
-        path=plot_dir / "inference_reconstruction.png",
-    )
+    if isinstance(model, BitnetSyntheticProbabilistic):
+        for data in data_loader:
+            mu, logvar = model.encode_latent(data)
+            z = model.reparameterize(mu, logvar)
+            recon_mu, recon_logvar = model.decode(z)
+            recon_std = torch.sqrt(torch.exp(recon_logvar))
+            eps = torch.randn_like(recon_std)
+            reconstructions = recon_mu + eps * recon_std
+            reconstructed_data.append(reconstructions.detach().cpu().numpy())
+        reconstructed_data = np.concatenate(reconstructed_data, 0)
+        helpers.plot_data(
+            torch.tensor(reconstructed_data),
+            title="Inference: Reconstruction",
+            x="Dimension 1",
+            y="Dimension 2",
+            path=plot_dir / "inference_reconstruction.png",
+        )
+    else:
+        for data in data_loader:
+            mu, logvar = model.encode_latent(data)
+            z = model.reparameterize(mu, logvar)
+            reconstructions = model.decode(z)
+            reconstructed_data.append(reconstructions.detach().cpu().numpy())
+        reconstructed_data = np.concatenate(reconstructed_data, 0)
+        helpers.plot_data(
+            torch.tensor(reconstructed_data),
+            title="Inference: Reconstruction",
+            x="Dimension 1",
+            y="Dimension 2",
+            path=plot_dir / "inference_reconstruction.png",
+        )
 
 
 def evaluate_vae(model, data_loader, config, logger):

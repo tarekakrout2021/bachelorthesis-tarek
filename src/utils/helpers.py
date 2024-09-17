@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import torch
+from matplotlib import ticker
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
@@ -14,6 +15,7 @@ from src.models.BaselineMnist import BaselineMnist
 from src.models.BaselineSynthetic import BaselineSynthetic
 from src.models.BitnetMnist import BitnetMnist
 from src.models.BitnetSynthetic import BitnetSynthetic
+from src.models.BitnetSyntheticProbabilistic import BitnetSyntheticProbabilistic
 from src.models.ddpm import MLP
 from src.models.VAE import VAE
 from src.utils.Config import DdpmConfig, VaeConfig
@@ -33,9 +35,9 @@ def plot_data(
 
     plt.figure(figsize=(8, 6))
     plt.scatter(data[:, 0], data[:, 1], alpha=0.5)
-    plt.title(title)
-    plt.xlabel(x)
-    plt.ylabel(y)
+    plt.title(title, fontsize=20)
+    plt.xlabel(x, fontsize=20)
+    plt.ylabel(y, fontsize=20)
     plt.grid(True)
     plt.axis("equal")
     plt.savefig(path)
@@ -48,6 +50,8 @@ def get_model(config):
             model = BaselineSynthetic(config)
         elif config.model_name == "bitnet_synthetic":
             model = BitnetSynthetic(config)
+        elif config.model_name == "bitnet_synthetic_probabilistic":
+            model = BitnetSyntheticProbabilistic(config)
         elif config.model_name == "bitnet_mnist":
             model = BitnetMnist(config)
         elif config.model_name == "baseline_mnist":
@@ -85,9 +89,9 @@ def plot_bar(counts, values=None, path="weights.png"):
         values = [-1, 0, 1]
     plt.figure(figsize=(8, 6))
     plt.bar(values, counts, edgecolor="black")
-    plt.title("Distribution of weights")
-    plt.xlabel("Values")
-    plt.ylabel("Frequency")
+    plt.title("Distribution of weights", fontsize=20)
+    plt.xlabel("Values", fontsize=20)
+    plt.ylabel("Frequency", fontsize=20)
     plt.xticks(values)
     plt.savefig(path)
     plt.close()
@@ -120,7 +124,7 @@ def plot_latent_space(model, config, scale=1.0, n=25, digit_size=28, figsize=15)
             ] = digit
 
     plt.figure(figsize=(figsize, figsize))
-    plt.title("VAE Latent Space Visualization")
+    plt.title("VAE Latent Space Visualization", fontsize=20)
     start_range = digit_size // 2
     end_range = n * digit_size + start_range
     pixel_range = np.arange(start_range, end_range, digit_size)
@@ -128,8 +132,8 @@ def plot_latent_space(model, config, scale=1.0, n=25, digit_size=28, figsize=15)
     sample_range_y = np.round(grid_y, 1)
     plt.xticks(pixel_range, sample_range_x)
     plt.yticks(pixel_range, sample_range_y)
-    plt.xlabel("mean, z [0]")
-    plt.ylabel("var, z [1]")
+    plt.xlabel("mean, z [0]", fontsize=20)
+    plt.ylabel("var, z [1]", fontsize=20)
     plt.imshow(figure, cmap="Greys_r")
     plt.savefig(plot_dir / f"mnist_reconstructed_{scale}.png")
     plt.close()
@@ -217,9 +221,12 @@ def plot_weight_distributions(model, plot_dir):
     combined_weights = np.concatenate(combined_weights)
     plt.figure(figsize=(8, 6))
     sns.histplot(combined_weights, bins=50, kde=True)
-    plt.title(f"Weight Distribution")
-    plt.xlabel("Weight values")
-    plt.ylabel("Frequency")
+    plt.title(f"Weight Distribution", fontsize=20)
+    plt.xlabel("Weight values", fontsize=20)
+    plt.ylabel("Frequency (x1000)", fontsize=20)
+    plt.gca().yaxis.set_major_formatter(
+        ticker.FuncFormatter(lambda x, pos: "%1.0f" % (x * 1e-3))
+    )
     plt.xlim(-1.5, 1.5)
     plt.savefig(plot_dir / "weight_distribution.png")
     plt.close()
@@ -242,6 +249,7 @@ def get_args():
             "bitnet_synthetic",
             "bitnet_mnist",
             "baseline_mnist",
+            "bitnet_synthetic_probabilistic",
         ],
         default="bitnet_synthetic",
     )
@@ -309,7 +317,7 @@ def get_args():
         "--dataset",
         type=str,
         default="dino",
-        choices=["circle", "dino", "line", "moons"],
+        choices=["circle", "dino", "line", "moons", "mixture", "circles"],
     )
     parser_ddpm.add_argument("--train_batch_size", type=int, default=32)
     parser_ddpm.add_argument("--eval_batch_size", type=int, default=1000)

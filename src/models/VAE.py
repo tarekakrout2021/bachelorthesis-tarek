@@ -81,7 +81,10 @@ class VAE(nn.Module):
                 layers.append(RMSNorm(self.decoder_layers[i - 1]))
             layers.append(layer(self.decoder_layers[i - 1], self.decoder_layers[i]))
             layers.append(activation_layer)
-        layers.append(layer(self.decoder_layers[-1], input_dim))
+        if config.model_name != "bitnet_synthetic_probabilistic":
+            layers.append(layer(self.decoder_layers[-1], input_dim))
+        if config.model_name == "bitnet_synthetic_probabilistic":
+            layers = layers[:-1]
         self.decoder: nn.Sequential = nn.Sequential(*layers)
 
         self.to(config.device)
