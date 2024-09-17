@@ -46,7 +46,8 @@ def get_data_vae(config: VaeConfig) -> DataLoader:
             shuffle=True,
         )
 
-    def generate_mixture_of_gaussians(n_samples: int = 15_000) -> DataLoader:
+    # 15_000
+    def generate_mixture_of_gaussians(n_samples: int = 3000) -> DataLoader:
         mean1 = [0, 0]
         cov1 = [[1, 0], [0, 1]]
         data1 = np.random.multivariate_normal(mean1, cov1, n_samples // 3)
