@@ -1,5 +1,5 @@
 import torch
-from torch.distributions import MultivariateNormal, Normal
+from torch.distributions import Normal
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision import transforms
 from torchvision.datasets import MNIST
@@ -62,8 +62,8 @@ if __name__ == "__main__":
             ]
         )
         test_dataset = (
-                MNIST(root="./data", train=False, transform=transform, download=True).data
-                / 255.0
+            MNIST(root="./data", train=False, transform=transform, download=True).data
+            / 255.0
         )
         x = test_dataset.data[:10_000]
         x = DataLoader(TensorDataset(x), batch_size=100, shuffle=False)
