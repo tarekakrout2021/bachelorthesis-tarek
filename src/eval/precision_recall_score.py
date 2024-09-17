@@ -60,9 +60,7 @@ def calculate_conditional_precision(
         plot_data_recon[label2] += 1
 
     model_name = "bitnet" if isinstance(vae_model, BitnetMnist) else "baseline"
-    plot_distribution(
-        plot_data_init, f"Initial data distribution using {model_name}", plot_dir
-    )
+    plot_distribution(plot_data_init, f"Initial data distribution", plot_dir)
     plot_distribution(
         plot_data_recon, f"Reconstructed data distribution using {model_name}", plot_dir
     )
@@ -78,8 +76,10 @@ def plot_distribution(freq: list, title: str, plot_dir: Path = None):
     """
     plots the frequency of each digit in the original and the reconstructed dataset
     """
-    plt.bar([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], freq)
-    plt.title(title, fontsize=20)
+    categories = [str(i) for i in range(10)]
+    plt.bar(categories, freq)
+    plt.xticks(np.arange(len(categories)), categories)
+    plt.title(title, fontsize=18)
     plt.savefig(plot_dir / f"{title}.png")
     plt.close()
 
@@ -118,7 +118,7 @@ def plot_data_for_conditional_recall(
         plt.close()
 
 
-def unconditional_recall(classifier_model: Net, vae_model: VAE):
+def unconditional_recall(classifier_model: Net, vae_model: VAE, plot_eval_dir: Path):
     freq = [0] * 10
     generated_samples = vae_model.sample(n_samples=1000)
     generated_samples = generated_samples.cpu().reshape(1000, 1, 28, 28)
@@ -127,6 +127,22 @@ def unconditional_recall(classifier_model: Net, vae_model: VAE):
     for label in pred:
         freq[label] += 1
     plot_distribution(freq, "Unconditional sampling distribution", plot_eval_dir)
+
+
+def conditional_recall(
+    classifier_model: Net, vae_model: VAE, number: int, plot_eval_dir: Path
+):
+    generated_samples = vae_model.sample(n_samples=1000)
+    generated_samples = generated_samples.cpu().reshape(1000, 1, 28, 28)
+    output = classifier_model(generated_samples)
+    pred = output.data.max(1, keepdim=True)[1].reshape(1000)
+    mask = pred == number
+    number_images = generated_samples[mask]
+    number_images = number_images[:10]
+    for i in range(10):
+        plt.imshow(number_images[i][0], cmap="gray")
+        plt.savefig(plot_eval_dir / f"recon_classified_as_{number}_recon_{i}.png")
+        plt.close()
 
 
 def load_mnist_test_data() -> torch.utils.data.DataLoader:
@@ -157,9 +173,19 @@ def main(plot_dir: Path, *args):
     if args and args[0] == "baseline":
         model = load_model("baseline_mnist")
 
+    plot_eval_dir = (
+        Path("precision_recall_plots_bitnet")
+        if "bitnet" in str(model)
+        else Path("precision_recall_plots_baseline")
+    )
+    if not plot_eval_dir.exists():
+        plot_eval_dir.mkdir()
+
     # load test data
     test_loader = load_mnist_test_data()
-    unconditional_recall(classifier_model, model)
+    unconditional_recall(classifier_model, model, plot_eval_dir)
+    for i in range(10):
+        conditional_recall(classifier_model, model, i, plot_eval_dir)
 
     calculate_conditional_precision(classifier_model, model, test_loader, plot_dir)
     test_loader.dataset.data = test_loader.dataset.data[:1000]
@@ -170,7 +196,4 @@ def main(plot_dir: Path, *args):
 
 
 if __name__ == "__main__":
-    plot_eval_dir = Path("precision_recall_plots_baseline")
-    if not plot_eval_dir.exists():
-        plot_eval_dir.mkdir()
-    main(plot_eval_dir, *sys.argv[1:])
+    main(*sys.argv[1:])
