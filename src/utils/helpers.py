@@ -2,6 +2,7 @@ import argparse
 import logging
 import uuid
 from pathlib import Path
+from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -370,7 +371,9 @@ def get_config(run_id):
     return config
 
 
-def load_model(model_name: str) -> VAE:
+def load_model(
+    model_name: str, data: str = "anisotropic"
+) -> VAE | Tuple[VAE, VaeConfig]:
     if model_name == "baseline_mnist":
         model_path = "../runs/baseline_mnist_ref_8/model.pth"
         model_state_dict = torch.load(model_path, map_location=torch.device("cpu"))
@@ -404,3 +407,109 @@ def load_model(model_name: str) -> VAE:
         model.load_state_dict(model_state_dict)
         model.eval()
         return model
+    elif model_name == "baseline_synthetic" and data == "anisotropic":
+        model_path = "../runs/baseline_anisotropic/model.pth"
+        model_state_dict = torch.load(model_path, map_location=torch.device("cpu"))
+        config = VaeConfig(
+            model_name="baseline_synthetic",
+            latent_dim=2,
+            encoder_layers=[200, 200, 200],
+            decoder_layers=[200, 200, 200],
+            activation_layer="ReLU",
+            learning_rate=0.001,
+            training_data="anisotropic",
+            # norm="RMSNorm",
+        )
+        model = BaselineSynthetic(config)
+        model.load_state_dict(model_state_dict)
+        model.eval()
+        return model, config
+
+    elif model_name == "bitnet_synthetic" and data == "anisotropic":
+        model_path = "../runs/bitnet_anisotropic/model.pth"
+        model_state_dict = torch.load(model_path, map_location=torch.device("cpu"))
+        config = VaeConfig(
+            model_name="bitnet_synthetic",
+            latent_dim=2,
+            encoder_layers=[200, 200, 200],
+            decoder_layers=[200, 200, 200],
+            activation_layer="ReLU",
+            learning_rate=0.001,
+            training_data="anisotropic",
+            # norm="RMSNorm",
+        )
+        model = BitnetSynthetic(config)
+        model.load_state_dict(model_state_dict)
+        model.eval()
+        return model, config
+
+    elif model_name == "baseline_synthetic" and data == "spiral":
+        model_path = "../runs/baseline_spiral/model.pth"
+        model_state_dict = torch.load(model_path, map_location=torch.device("cpu"))
+        config = VaeConfig(
+            model_name="baseline_synthetic",
+            latent_dim=2,
+            encoder_layers=[200, 200, 200],
+            decoder_layers=[200, 200, 200],
+            activation_layer="Sigmoid",
+            learning_rate=0.001,
+            training_data="spiral",
+            # norm="RMSNorm",
+        )
+        model = BaselineSynthetic(config)
+        model.load_state_dict(model_state_dict)
+        model.eval()
+        return model, config
+    elif model_name == "bitnet_synthetic" and data == "spiral":
+        model_path = "../runs/bitnet_spiral/model.pth"
+        model_state_dict = torch.load(model_path, map_location=torch.device("cpu"))
+        config = VaeConfig(
+            model_name="bitnet_synthetic",
+            latent_dim=2,
+            encoder_layers=[200, 200, 200],
+            decoder_layers=[200, 200, 200],
+            activation_layer="Sigmoid",
+            learning_rate=0.001,
+            training_data="spiral",
+            # norm="RMSNorm",
+        )
+        model = BitnetSynthetic(config)
+        model.load_state_dict(model_state_dict)
+        model.eval()
+        return model, config
+
+    elif model_name == "baseline_synthetic" and data == "circles":
+        model_path = "../runs/baseline_circles/model.pth"
+        model_state_dict = torch.load(model_path, map_location=torch.device("cpu"))
+        config = VaeConfig(
+            model_name="baseline_synthetic",
+            latent_dim=2,
+            encoder_layers=[200, 200, 200],
+            decoder_layers=[200, 200, 200],
+            activation_layer="Sigmoid",
+            learning_rate=0.001,
+            training_data="circles",
+            # norm="RMSNorm",
+        )
+        model = BaselineSynthetic(config)
+        model.load_state_dict(model_state_dict)
+        model.eval()
+        return model, config
+
+    elif model_name == "bitnet_synthetic" and data == "circles":
+        model_path = "../runs/bitnet_circles/model.pth"
+        model_state_dict = torch.load(model_path, map_location=torch.device("cpu"))
+        config = VaeConfig(
+            model_name="bitnet_synthetic",
+            latent_dim=2,
+            encoder_layers=[200, 200, 200],
+            decoder_layers=[200, 200, 200],
+            activation_layer="Sigmoid",
+            learning_rate=0.001,
+            training_data="circles",
+            # norm="RMSNorm",
+        )
+        model = BitnetSynthetic(config)
+        model.load_state_dict(model_state_dict)
+        model.eval()
+        return model, config
