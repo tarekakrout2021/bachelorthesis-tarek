@@ -4,16 +4,17 @@ from torch.utils.data import DataLoader, TensorDataset
 from torchvision import transforms
 from torchvision.datasets import MNIST
 
+from src.data.make_dataset import get_data_vae
 from src.utils.helpers import load_model
 
 
-def compute_log_likelihood(vae, data, num_samples: int = 100):
+def compute_log_likelihood(vae, data, num_samples: int = 100, data_dim: int = 784):
     total_log_likelihood = 0
     total_samples = 0
 
     for x_batch in data:
         logs = []
-        x_batch = x_batch[0].reshape(-1, 784)
+        x_batch = x_batch[0].reshape(-1, data_dim)
         batch_size = x_batch.size(0)
 
         mu, log_var = vae.encode(x_batch)
@@ -53,8 +54,8 @@ def compute_log_likelihood(vae, data, num_samples: int = 100):
 
 
 if __name__ == "__main__":
-    models = ["baseline_mnist", "bitnet_mnist"]
-    for model in models:
+    bitnet_models = ["baseline_mnist", "bitnet_mnist"]
+    for model in bitnet_models:
         vae_model = load_model(model)
         transform = transforms.Compose(
             [
@@ -69,4 +70,13 @@ if __name__ == "__main__":
         x = DataLoader(TensorDataset(x), batch_size=100, shuffle=False)
 
         likelihood = compute_log_likelihood(vae_model, x, 100)
-        print(f"{model}: log-likelihood: {likelihood}")
+        print(f"{model} with MNIST: log-likelihood: {likelihood}")
+
+    synthetic_data_models = ["baseline_synthetic", "bitnet_synthetic"]
+    data = ["anisotropic", "spiral", "circles"]
+    for model in synthetic_data_models:
+        for data_type in data:
+            vae_model, config = load_model(model, data_type)
+            x: DataLoader = get_data_vae(config)
+            likelihood = compute_log_likelihood(vae_model, x, 500, data_dim=2)
+            print(f"{model} with {data_type}: log-likelihood: {likelihood}")
