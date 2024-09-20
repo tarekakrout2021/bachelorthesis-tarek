@@ -371,6 +371,7 @@ def get_config(run_id):
     return config
 
 
+# Specific models used in my experiments
 def load_model(
     model_name: str, data: str = "anisotropic"
 ) -> VAE | Tuple[VAE, VaeConfig]:
