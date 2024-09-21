@@ -17,3 +17,8 @@ get_results.py
 
 
 bitnet_heatmap_diffusion
+
+src/eval/data
+src/eval/MNIST
+src/eval/classifier.pth
+src/eval/eval_plots

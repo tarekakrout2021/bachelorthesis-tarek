@@ -46,7 +46,8 @@ def get_data_vae(config: VaeConfig) -> DataLoader:
             shuffle=True,
         )
 
-    def generate_mixture_of_gaussians(n_samples: int = 15_000) -> DataLoader:
+    # 15_000
+    def generate_mixture_of_gaussians(n_samples: int = 3000) -> DataLoader:
         mean1 = [0, 0]
         cov1 = [[1, 0], [0, 1]]
         data1 = np.random.multivariate_normal(mean1, cov1, n_samples // 3)
@@ -120,13 +121,12 @@ def get_data_vae(config: VaeConfig) -> DataLoader:
         )
 
     def mnist_data() -> DataLoader:
-        # create a transform to apply to each datapoint
         transform = transforms.Compose([transforms.ToTensor()])
 
         # download the MNIST datasets
         path = "~/datasets"
         train_dataset = MNIST(path, transform=transform, download=True)
-
+        # train_dataset.data = train_dataset.data.float() / 255.0
         # create train dataloaders
         train_loader = DataLoader(
             dataset=train_dataset, batch_size=config.batch_size, shuffle=True

@@ -57,7 +57,7 @@ class VAE(nn.Module):
 
         for i in range(1, len(self.encoder_layers)):
             if config.norm == "RMSNorm":
-                layers.append(RMSNorm(self.encoder_layers[i-1]))
+                layers.append(RMSNorm(self.encoder_layers[i - 1]))
             layers.append(layer(self.encoder_layers[i - 1], self.encoder_layers[i]))
             layers.append(activation_layer)
         self.encoder: nn.Sequential = nn.Sequential(*layers)
@@ -81,7 +81,10 @@ class VAE(nn.Module):
                 layers.append(RMSNorm(self.decoder_layers[i - 1]))
             layers.append(layer(self.decoder_layers[i - 1], self.decoder_layers[i]))
             layers.append(activation_layer)
-        layers.append(layer(self.decoder_layers[-1], input_dim))
+        if config.model_name != "bitnet_synthetic_probabilistic":
+            layers.append(layer(self.decoder_layers[-1], input_dim))
+        if config.model_name == "bitnet_synthetic_probabilistic":
+            layers = layers[:-1]
         self.decoder: nn.Sequential = nn.Sequential(*layers)
 
         self.to(config.device)
@@ -152,12 +155,12 @@ class VAE(nn.Module):
             name = "\n".join(
                 textwrap.wrap(name, width=40)
             )  # Adjust the width as needed
-            plt.title(f"Non-Quantized Weights Layer \n {name}")
+            plt.title(f"Non-Quantized Weights Layer \n {name}", fontsize=20)
 
             plt.subplot(1, 2, 2)
             plt.imshow(quantized_weights.to("cpu"), cmap="viridis")
             plt.colorbar()
-            plt.title(f"Quantized Weights Layer \n {name}")
+            plt.title(f"Quantized Weights Layer \n {name}", fontsize=20)
 
             plt.savefig(plot_dir / f"layer_{name}.png")
             plt.close()
